@@ -1,16 +1,26 @@
 {
-  "name": "back",
+  "name": "back-end",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index",
+    "dev": "nodemon index"
   },
   "keywords": [],
-  "author": "",
+  "author": "mViniccius",
   "license": "ISC",
-  "description": "",
+  "description": "projeto back-end gestão",
   "dependencies": {
+    "colors": "^1.4.0",
     "express": "^5.2.1",
     "nodemon": "^3.1.11"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mviniccius/Micro-Saas.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mviniccius/Micro-Saas/issues"
+  },
+  "homepage": "https://github.com/mviniccius/Micro-Saas#readme"
 }
