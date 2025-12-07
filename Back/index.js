@@ -6,7 +6,7 @@ const colors = require("colors");
 const port = 3000;
 
 app.get("/home", (req, res) => {
-  res.send("Olá mundo!");
+  res.send("Olá mundo troquei !");
 });
 
 app.listen(3000, () => {
