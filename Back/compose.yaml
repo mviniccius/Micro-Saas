@@ -1,9 +1,38 @@
+version: "3.9"
+
 services:
   app:
     image: 'node:20.16.0-alpine'
     working_dir: /app
     volumes:
-      - .:/app      
+      - .:/app
     ports:
-     - "3000:3000"
+      - "3000:3000"
     command: ["npm", "start"]
+
+  database:
+    image: "postgres:17-alpine"
+    environment:
+      POSTGRES_PASSWORD: 123
+      POSTGRES_USER: postgres
+      POSTGRES_DB: padaria
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8081:80"
+    depends_on:
+      - database
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+
+volumes:
+  postgres-data:
+  pgadmin-data:
