@@ -5,16 +5,10 @@ const router = Router();
 const userController = require("../controllers/userController");
 
 //get
-router.get("/user", (req, res) => {
-  const resposta = userController.buscar();
-  res.send(resposta);
-});
+router.get("/user", (req, res) =>  userController.buscar(req, res));
 
 //post
-router.post("/user", (req, res) => {
-  const resposta = userController.criar();
-  res.send(resposta);
-});
+router.post("/user", (req, res) => userController.criar(req, res));
 
 //put
 router.put("/user/:id", (req, res) => {

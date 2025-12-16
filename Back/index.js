@@ -1,17 +1,21 @@
 const express = require("express");
+const colors = require("colors");
+const router = require("./routers");
+const conectarDB = require("./database/mongo");
+
 const app = express();
-const router = require("./routers/index");
+const port = 3000;
+
+app.use(express.json())
 
 router(app);
-
-const colors = require("colors");
-
-const port = 3000;
 
 app.get("/home", (req, res) => {
   res.send("Olá mundo ei asassaas !");
 });
 
-app.listen(3000, () => {
-  console.log(colors.bgBlue(`Servidor rodando na porta ${port}`));
+conectarDB().then(() => {
+  app.listen(port, () => {
+    console.log(colors.bgBlue(`Servidor rodando na porta ${port}`));
+  });
 });
