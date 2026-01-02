@@ -1,4 +1,4 @@
-const { listarTodosUsuarios, criarUsario } = require("../service/userService");
+const { listarTodosUsuarios, criarUsario } = require("../service/userServicePostgres");
 
 class userControler {
   async buscar(req, res) {
@@ -12,15 +12,20 @@ class userControler {
   }
 
  async criar(req, res) {
-    const { nome, email } = req.body;
-    try{      
+   try{      
+      const { nome, email } = req.body;
       if(!nome || !email){
         return res.status(400).json({ message: "Nome e email sao obrigatorios"})
       }
       const user = await criarUsario({ nome, email})
       return res.status(201).json(user);
-    }catch(erro){
+    }catch(error){
       console.error("Erro ao criar usuario: ", error)
+
+      if (error.code === "23505"){
+        return res.status(409).json({ message: "Email ja cadastrado" })
+      }
+
       return res.status(500).json({ error: "Erro ao criar usuario"})
     }
   }

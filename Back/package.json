@@ -14,7 +14,8 @@
     "colors": "^1.4.0",
     "express": "^5.2.1",
     "mongoose": "^9.0.1",
-    "nodemon": "^3.1.11"
+    "nodemon": "^3.1.11",
+    "pg": "^8.16.3"
   },
   "repository": {
     "type": "git",
