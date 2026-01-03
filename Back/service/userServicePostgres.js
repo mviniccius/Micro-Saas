@@ -9,7 +9,7 @@ async function listarTodosUsuarios() {
 
 //POST /user
 async function criarUsario({ nome, email }) {
-    const result = await db.query("INSERT INTO users (nome, email) VALUES ($1, $1) RETURNING id, nome, email, created_at",
+    const result = await db.query("INSERT INTO users (nome, email) VALUES ($1, $1) RETURNING id, nome, email",
         [nome, email]
     )
     return result.rows[0]

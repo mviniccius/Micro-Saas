@@ -10,5 +10,9 @@ app.use(express.json())
 router(app);
 
 app.get("/home", (req, res) => {
-  res.send("Olá mundo ei asassaas !");
+  res.send("Estou rodando");
+});
+
+app.listen(port, () => {
+  console.log(colors.bgBlue(`Servidor rodando na porta ${port}`));
 });
