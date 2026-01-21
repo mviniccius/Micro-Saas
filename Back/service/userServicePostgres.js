@@ -14,7 +14,7 @@ async function criarUsario({ nome, email }) {
     )
     return result.rows[0]
 }
-async function atualizarUsuario({ id }) {
+async function atualizarUsuario({ id, nome, email }) {
     const result = await db.query("UPDATE users SET nome = $1, email = $2  WHERE id = $3 RETURNING id, nome, email", [nome, email, id])
         return result.rows[0]
 }

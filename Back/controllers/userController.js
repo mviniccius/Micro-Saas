@@ -1,4 +1,8 @@
-const { listarTodosUsuarios, criarUsario } = require("../service/userServicePostgres");
+const {
+  listarTodosUsuarios,
+  criarUsario,
+  atualizarUsuario,
+} = require("../service/userServicePostgres");
 
 class userControler {
   async buscar(req, res) {
@@ -11,27 +15,44 @@ class userControler {
     }
   }
 
- async criar(req, res) {
-   try{      
+  async criar(req, res) {
+    try {
       const { nome, email } = req.body;
-      if(!nome || !email){
-        return res.status(400).json({ message: "Nome e email sao obrigatorios"})
+      if (!nome || !email) {
+        return res
+          .status(400)
+          .json({ message: "Nome e email sao obrigatorios" });
       }
-      const user = await criarUsario({ nome, email})
+      const user = await criarUsario({ nome, email });
       return res.status(201).json(user);
-    }catch(error){
-      console.error("Erro ao criar usuario: ", error)
+    } catch (error) {
+      console.error("Erro ao criar usuario: ", error);
 
-      if (error.code === "23505"){
-        return res.status(409).json({ message: "Email ja cadastrado" })
+      if (error.code === "23505") {
+        return res.status(409).json({ message: "Email ja cadastrado" });
       }
 
-      return res.status(500).json({ error: "Erro ao criar usuario"})
+      return res.status(500).json({ error: "Erro ao criar usuario" });
     }
   }
 
-  atualizar(id) {
-    return "Atualizando usuario id: " + id + " !!";
+  async atualizar(req, res) {
+    const { id } = req.params;
+    const { nome, email } = req.body;
+
+    try {
+      if (!nome || !email) {
+        return res
+          .status(400)
+          .json({ message: "Nome e email sao obrigatorios!" });
+      }
+      const user = await atualizarUsuario({ id, nome, email });
+      return res.status(201).json(user);
+    } catch (error) {
+      console.error("Erro ao atualizar usuario" + error);
+      
+      return res.status(500).json({ error:"Erro ao atualizar usuario"}) 
+    }
   }
 
   apagar(id) {
