@@ -5,17 +5,13 @@ const router = Router();
 const userController = require("../controllers/userController");
 
 //get
-router.get("/", (req, res) =>  userController.buscar(req, res));
+router.get("/", (req, res) => userController.buscar(req, res));
 
 //post
 router.post("/", (req, res) => userController.criar(req, res));
 
 //put
-router.put("/:id", (req, res) => {
-  const { id } = req.params;
-  const resposta = userController.atualizar(id);
-  res.send(resposta);
-});
+router.put("/:id", (req, res) => userController.atualizar(req, res));
 
 //delet
 router.delete("/:id", (req, res) => {
