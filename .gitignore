@@ -1,6 +1,7 @@
 # Node backend
 Back/node_modules/
 Back/package-lock.json
+front/package-lock.json
 
 # Ambiente (caso use)
 .env
