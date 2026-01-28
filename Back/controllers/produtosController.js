@@ -18,12 +18,12 @@ class produtoControler {
   async criar(req, res) {
     try {
       const { nome, preco } = req.body;
-      if (!nome || preco) {
+      if (!nome || !preco) {
         return res
           .status(400)
           .json({ message: "Nome e email sao obrigatorios" });
       }
-      const produto = await criarProduto({ nome, preco });
+      const produto = await criarProduto(nome, preco);
       return res.status(201).json(produto);
     } catch (error) {
       console.error("Erro ao criar produto: ", error);
