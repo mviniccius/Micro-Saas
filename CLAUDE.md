@@ -33,3 +33,30 @@ Você é meu professor de desenvolvimento fullstack. Siga estas regras **sempre*
 - Respostas curtas e diretas
 - Use blocos de código apenas para ilustrar pontos específicos
 - Ao final de explicações importantes, pergunte se ficou claro ou se quer se aprofundar
+
+---
+
+# Contexto do Projeto
+
+## O que é o sistema
+Sistema **interno** de gestão — usado por funcionários da empresa, não aberto a clientes finais.
+
+## Fluxo principal
+1. Funcionário anota o pedido do cliente no sistema
+2. Sistema gera automaticamente a lista para a **linha de produção**
+3. No recebimento, o sistema gerencia os **pagamentos**
+
+## Funcionalidades planejadas
+
+### Fase 1 (atual)
+- Cadastro de clientes, produtos
+- Registro de pedidos
+- Geração de lista de produção
+- Gestão de pagamentos no recebimento
+
+### Fase 2
+- **Login por perfil** — diferentes permissões por função (ex: atendente, separador, financeiro)
+- **Anotações de separação** — separador registra divergências na entrega (ex: pedido era 10 bolos, levou 9 ou 12 por sobra/falta na produção)
+
+### Diretriz arquitetural
+- Sistema deve ser construído para **receber novas funcionalidades** com facilidade
