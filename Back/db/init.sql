@@ -1,5 +1,5 @@
 CREATE TABLE perfis(
-  id_perfil INT PRIMARY KEY,
+  id_perfil SERIAL PRIMARY KEY,
   nome VARCHAR(120)
 );
 
@@ -17,7 +17,7 @@ CREATE TABLE usuarios (
 
 
 CREATE TABLE clientes(
-  id_cliente INT PRIMARY KEY,
+  id_cliente SERIAL PRIMARY KEY,
   nome VARCHAR(120),
   telefone VARCHAR(12),
   active boolean,
@@ -26,7 +26,7 @@ CREATE TABLE clientes(
 );
 
 CREATE TABLE pedidos(
-  id_pedido INT PRIMARY KEY,
+  id_pedido SERIAL PRIMARY KEY,
   id_cliente int,
   valor_total numeric,
   status char,
@@ -36,7 +36,7 @@ CREATE TABLE pedidos(
 );
 
 CREATE TABLE produtos(
-  id_produto INT PRIMARY KEY,
+  id_produto SERIAL PRIMARY KEY,
   nome_produto char(50),
   preco numeric,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -44,7 +44,7 @@ CREATE TABLE produtos(
 );
 
 CREATE TABLE itens_pedido(
-  id_itens_pedido INT PRIMARY KEY,
+  id_itens_pedido SERIAL PRIMARY KEY,
   id_pedido int,
   id_produto int,
   quantidade int,
