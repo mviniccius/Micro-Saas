@@ -37,7 +37,7 @@ CREATE TABLE pedidos(
 
 CREATE TABLE produtos(
   id_produto SERIAL PRIMARY KEY,
-  nome_produto char(50),
+  nome_produto VARCHAR(50),
   preco numeric,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   update_at TIMESTAMP NOT NULL DEFAULT NOW()
