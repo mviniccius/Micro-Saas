@@ -1,0 +1,148 @@
+{
+  "info": {
+    "name": "API Gestão Padaria",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000"
+    }
+  ],
+  "item": [
+    {
+      "name": "Clientes",
+      "item": [
+        {
+          "name": "Listar clientes",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/clientes"
+          }
+        },
+        {
+          "name": "Buscar por telefone",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/clientes/telefone/11999999999"
+          }
+        },
+        {
+          "name": "Criar cliente",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/clientes",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Maria Silva\",\n  \"telefone\": \"11999999999\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Atualizar cliente",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/clientes/1",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Maria Silva Atualizada\",\n  \"telefone\": \"11988888888\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Produtos",
+      "item": [
+        {
+          "name": "Listar produtos",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/produtos"
+          }
+        },
+        {
+          "name": "Criar produto",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/produtos",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Bolo de Chocolate\",\n  \"preco\": 45.90\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pedidos",
+      "item": [
+        {
+          "name": "Listar pedidos",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/pedidos"
+          }
+        },
+        {
+          "name": "Buscar pedidos por telefone",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/pedidos/telefone/11999999999"
+          }
+        },
+        {
+          "name": "Criar pedido",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/pedidos",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_cliente\": 1,\n  \"itens\": [\n    {\n      \"id_produto\": 1,\n      \"quantidade\": 2,\n      \"preco\": 45.90\n    }\n  ]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usuários",
+      "item": [
+        {
+          "name": "Listar usuários",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/users"
+          }
+        },
+        {
+          "name": "Criar usuário",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/users",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Dono\",\n  \"email\": \"joao@padaria.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Atualizar usuário",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/users/1",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Atualizado\",\n  \"email\": \"joao.novo@padaria.com\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

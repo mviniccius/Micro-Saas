@@ -1,57 +1,62 @@
 const pool = require("../database/postgres");
 
-async function criarPedidoCompleto(id_usuario, itens) {
+async function listarTodosPedidos() {
+  const result = await pool.query(`
+    SELECT p.id_pedido, p.valor_total, p.status, p.created_at,
+           c.nome AS cliente, c.telefone
+    FROM pedidos p
+    JOIN clientes c ON c.id_cliente = p.id_cliente
+    ORDER BY p.created_at DESC
+  `);
+  return result.rows;
+}
+
+async function listarPedidosPorTelefone(telefone) {
+  const result = await pool.query(`
+    SELECT p.id_pedido, p.valor_total, p.status, p.created_at
+    FROM pedidos p
+    JOIN clientes c ON c.id_cliente = p.id_cliente
+    WHERE c.telefone = $1
+    ORDER BY p.created_at DESC
+  `, [telefone]);
+  return result.rows;
+}
+
+async function criarPedidoCompleto(id_cliente, itens) {
   const client = await pool.connect();
 
   try {
-    // PASSO 1: Iniciar a Transação
     await client.query("BEGIN");
 
-    // PASSO 2: Calcular o valor total do pedido
     const totalPedido = itens.reduce((acumulador, item) => {
       return acumulador + item.quantidade * item.preco;
     }, 0);
 
-    // PASSO 3: Inserir o pedido na tabela 'pedidos' e recuperar o ID
-    const queryPedido = `INSERT INTO pedidos (id_cliente, valor_total) VALUES ($1, $2) RETURNING id`;
-    const valuesPedido = [id_usuario, totalPedido];
-    const resPedido = await client.query(queryPedido, valuesPedido);
+    const queryPedido = `INSERT INTO pedidos (id_cliente, valor_total, status) VALUES ($1, $2, 'P') RETURNING id_pedido`;
+    const resPedido = await client.query(queryPedido, [id_cliente, totalPedido]);
+    const idPedidoGerado = resPedido.rows[0].id_pedido;
 
-    const idPedidoGerado = resPedido.rows[0].id;
-
-    // PASSO 4: Inserir cada item na tabela 'itens_pedido'
     for (const item of itens) {
       const totalItem = item.quantidade * item.preco;
-      const queryItem = `INSERT INTO itens_pedido (id_pedido, id_produto, quantidade, preco_unitario, valor_total_item) VALUES ($1, $2, $3, $4, $5)`;
-      const valuesItem = [
-        idPedidoGerado, // $1
-        item.id_produto, // $2
-        item.quantidade, // $3
-        item.preco, // $4
-        totalItem, // $5
-      ];
-      await client.query(queryItem, valuesItem);
+      await client.query(
+        `INSERT INTO itens_pedido (id_pedido, id_produto, quantidade, preco_unitario, valor_total_item) VALUES ($1, $2, $3, $4, $5)`,
+        [idPedidoGerado, item.id_produto, item.quantidade, item.preco, totalItem]
+      );
     }
 
-    // PASSO 5: Confirmar a Transação (Sucesso!)
     await client.query("COMMIT");
 
-    return {
-      sucesso: true,
-      id_pedido: idPedidoGerado,
-      total: totalPedido,
-    };
+    return { sucesso: true, id_pedido: idPedidoGerado, total: totalPedido };
   } catch (error) {
-    // PASSO 6: Desfazer tudo se algo der errado
     await client.query("ROLLBACK");
-    console.error("Erro ao criar pedido:", error);
     throw error;
   } finally {
-    // PASSO 7: Liberar o cliente volta para o pool
     client.release();
   }
 }
 
 module.exports = {
+  listarTodosPedidos,
+  listarPedidosPorTelefone,
   criarPedidoCompleto,
 };

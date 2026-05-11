@@ -1,22 +1,24 @@
 const db = require("../database/postgres")
 
-//GET /user
 async function listarTodosUsuarios() {
-    const result = await db.query("SELECT * FROM users ORDER BY id ASC")
-
+    const result = await db.query("SELECT * FROM usuarios ORDER BY id_usuario ASC")
     return result.rows
 }
 
-//POST /user
 async function criarUsario({ nome, email }) {
-    const result = await db.query("INSERT INTO users (nome, email) VALUES ($1, $2) RETURNING id, nome, email",
+    const result = await db.query(
+        "INSERT INTO usuarios (nome, email) VALUES ($1, $2) RETURNING id_usuario, nome, email",
         [nome, email]
     )
     return result.rows[0]
 }
+
 async function atualizarUsuario({ id, nome, email }) {
-    const result = await db.query("UPDATE users SET nome = $1, email = $2  WHERE id = $3 RETURNING id, nome, email", [nome, email, id])
-        return result.rows[0]
+    const result = await db.query(
+        "UPDATE usuarios SET nome = $1, email = $2 WHERE id_usuario = $3 RETURNING id_usuario, nome, email",
+        [nome, email, id]
+    )
+    return result.rows[0]
 }
 
 module.exports = {
