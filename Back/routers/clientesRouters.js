@@ -6,6 +6,8 @@ const clienteController = require("../controllers/clienteController");
  * @swagger
  * /clientes:
  *   get:
+ *     tags:
+ *       - Clientes
  *     summary: Lista todos os clientes
  *     responses:
  *       200:
@@ -17,6 +19,8 @@ router.get("/", (req, res) => clienteController.buscar(req, res));
  * @swagger
  * /clientes/telefone/{telefone}:
  *   get:
+ *     tags:
+ *       - Clientes
  *     summary: Busca cliente pelo telefone (portal do cliente)
  *     parameters:
  *       - in: path
@@ -37,6 +41,8 @@ router.get("/telefone/:telefone", (req, res) => clienteController.buscarPorTelef
  * @swagger
  * /clientes:
  *   post:
+ *     tags:
+ *       - Clientes
  *     summary: Cadastra um novo cliente
  *     requestBody:
  *       required: true
@@ -56,6 +62,8 @@ router.post("/", (req, res) => clienteController.criar(req, res));
  * @swagger
  * /clientes/{id}:
  *   put:
+ *     tags:
+ *       - Clientes
  *     summary: Atualiza um cliente existente
  *     parameters:
  *       - in: path
