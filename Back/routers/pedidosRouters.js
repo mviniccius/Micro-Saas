@@ -50,4 +50,39 @@ router.get("/telefone/:telefone", (req, res) => pedidoController.buscarPorTelefo
  */
 router.post("/", (req, res) => pedidoController.criar(req, res));
 
+/**
+ * @swagger
+ * /pedidos/{id}/status:
+ *   patch:
+ *     summary: Atualiza o status de um pedido e publica evento no MOM
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 1
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [P, A, C, X]
+ *                 description: "P=Pendente, A=Em Produção, C=Concluído, X=Cancelado"
+ *             example:
+ *               status: "A"
+ *     responses:
+ *       200:
+ *         description: Status atualizado com sucesso
+ *       400:
+ *         description: Status inválido ou ausente
+ *       404:
+ *         description: Pedido não encontrado
+ */
+router.patch("/:id/status", (req, res) => pedidoController.atualizarStatus(req, res));
+
 module.exports = router;

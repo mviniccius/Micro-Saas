@@ -1,4 +1,5 @@
 const pool = require("../database/postgres");
+const { publicarEvento } = require("../messaging/publisher");
 
 async function listarTodosPedidos() {
   const result = await pool.query(`
@@ -46,6 +47,13 @@ async function criarPedidoCompleto(id_cliente, itens) {
 
     await client.query("COMMIT");
 
+    await publicarEvento("pedido.criado", {
+      id_pedido: idPedidoGerado,
+      id_cliente,
+      valor_total: totalPedido,
+      status: "P",
+    });
+
     return { sucesso: true, id_pedido: idPedidoGerado, total: totalPedido };
   } catch (error) {
     await client.query("ROLLBACK");
@@ -55,8 +63,40 @@ async function criarPedidoCompleto(id_cliente, itens) {
   }
 }
 
+async function atualizarStatusPedido(id_pedido, novo_status) {
+  const statusValidos = ["P", "A", "C", "X"];
+  if (!statusValidos.includes(novo_status)) {
+    throw new Error(`Status inválido. Use: ${statusValidos.join(", ")}`);
+  }
+
+  const resAtual = await pool.query(
+    "SELECT status FROM pedidos WHERE id_pedido = $1",
+    [id_pedido]
+  );
+
+  if (!resAtual.rows.length) {
+    throw new Error("Pedido não encontrado");
+  }
+
+  const status_anterior = resAtual.rows[0].status;
+
+  await pool.query(
+    "UPDATE pedidos SET status = $1, updated_at = NOW() WHERE id_pedido = $2",
+    [novo_status, id_pedido]
+  );
+
+  await publicarEvento("pedido.status_atualizado", {
+    id_pedido: Number(id_pedido),
+    status_anterior,
+    status_novo: novo_status,
+  });
+
+  return { id_pedido: Number(id_pedido), status_anterior, status_novo: novo_status };
+}
+
 module.exports = {
   listarTodosPedidos,
   listarPedidosPorTelefone,
   criarPedidoCompleto,
+  atualizarStatusPedido,
 };

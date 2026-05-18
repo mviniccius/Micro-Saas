@@ -4,13 +4,16 @@
   "main": "index.js",
   "scripts": {
     "start": "node index",
-    "dev": "nodemon index"
+    "dev": "nodemon index",
+    "setup:mom": "node scripts/setup-mom.js",
+    "seed": "node scripts/seed.js"
   },
   "keywords": [],
   "author": "mViniccius",
   "license": "ISC",
   "description": "projeto back-end gestão",
   "dependencies": {
+    "amqplib": "^2.0.1",
     "body-parser": "^2.2.2",
     "colors": "^1.4.0",
     "cors": "^2.8.6",
