@@ -4,6 +4,7 @@ const colors = require("colors");
 const router = require("./routers");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./swagger");
+const { iniciarConsumidor } = require("./messaging/consumer");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -17,4 +18,5 @@ app.get("/home", (req, res) => res.send("Estou rodando"));
 
 app.listen(port, () => {
   console.log(colors.bgBlue(`Servidor rodando na porta ${port}`));
+  iniciarConsumidor();
 });

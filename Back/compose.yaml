@@ -9,6 +9,9 @@ services:
     ports:
       - "3000:3000"
     command: ["npm", "start"]
+    depends_on:
+      - database
+      - rabbitmq
 
   database:
     image: "postgres:17-alpine"
@@ -21,6 +24,18 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
   pgadmin:
     image: dpage/pgadmin4
     environment:
@@ -36,3 +51,4 @@ services:
 volumes:
   postgres-data:
   pgadmin-data:
+  rabbitmq-data:
