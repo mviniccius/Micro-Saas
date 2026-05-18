@@ -1,15 +1,35 @@
 const { Router } = require("express");
 const router = Router();
+const produtoController = require("../controllers/produtosController");
 
-const produtoController = require("../controllers/produtosController")
+/**
+ * @swagger
+ * /produtos:
+ *   get:
+ *     summary: Lista todos os produtos
+ *     responses:
+ *       200:
+ *         description: Lista retornada com sucesso
+ */
+router.get("/", (req, res) => produtoController.buscar(req, res));
 
-//get
-router.get("/", (req, res) => produtoController.buscar(req, res))
+/**
+ * @swagger
+ * /produtos:
+ *   post:
+ *     summary: Cadastra um novo produto
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Produto'
+ *     responses:
+ *       201:
+ *         description: Produto criado com sucesso
+ *       400:
+ *         description: Dados obrigatórios ausentes
+ */
+router.post("/", (req, res) => produtoController.criar(req, res));
 
-//post
-router.post("/", (req, res) => produtoController.criar(req, res))
-
-//put
-//router.put("/:id", (reqm res) => produtoController.at)
-
-module.exports = router
+module.exports = router;
