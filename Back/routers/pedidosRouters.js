@@ -6,6 +6,8 @@ const pedidoController = require("../controllers/pedidoController");
  * @swagger
  * /pedidos:
  *   get:
+ *     tags:
+ *       - Pedidos
  *     summary: Lista todos os pedidos com dados do cliente
  *     responses:
  *       200:
@@ -17,6 +19,8 @@ router.get("/", (req, res) => pedidoController.buscar(req, res));
  * @swagger
  * /pedidos/telefone/{telefone}:
  *   get:
+ *     tags:
+ *       - Pedidos
  *     summary: Lista pedidos de um cliente pelo telefone
  *     parameters:
  *       - in: path
@@ -35,6 +39,8 @@ router.get("/telefone/:telefone", (req, res) => pedidoController.buscarPorTelefo
  * @swagger
  * /pedidos:
  *   post:
+ *     tags:
+ *       - Pedidos
  *     summary: Cria um novo pedido com itens
  *     requestBody:
  *       required: true

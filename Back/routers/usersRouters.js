@@ -9,6 +9,8 @@ const userController = require("../controllers/userController");
  * @swagger
  * /users:
  *   get:
+ *     tags:
+ *       - Usuários
  *     summary: Lista todos os usuários
  *     responses:
  *       200:
@@ -21,6 +23,8 @@ router.get("/", (req, res) => userController.buscar(req, res));
  * @swagger
  * /users:
  *   post:
+ *     tags:
+ *       - Usuários
  *     summary: Cria um novo usuário
  *     requestBody:
  *       content:
@@ -39,6 +43,8 @@ router.post("/", (req, res) => userController.criar(req, res));
  * @swagger
  * /users/{id}:
  *   put:
+ *     tags:
+ *       - Usuários
  *     summary: Atualiza um usuário existente
  *     parameters:
  *       - in: path
@@ -62,6 +68,8 @@ router.put("/:id", (req, res) => userController.atualizar(req, res));
  * @swagger
  * /users/{id}:
  *   delete:
+ *     tags:
+ *       - Usuários
  *     summary: Remove um usuário
  *     parameters:
  *       - in: path

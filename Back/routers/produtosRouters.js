@@ -6,6 +6,8 @@ const produtoController = require("../controllers/produtosController");
  * @swagger
  * /produtos:
  *   get:
+ *     tags:
+ *       - Produtos
  *     summary: Lista todos os produtos
  *     responses:
  *       200:
@@ -17,6 +19,8 @@ router.get("/", (req, res) => produtoController.buscar(req, res));
  * @swagger
  * /produtos:
  *   post:
+ *     tags:
+ *       - Produtos
  *     summary: Cadastra um novo produto
  *     requestBody:
  *       required: true
