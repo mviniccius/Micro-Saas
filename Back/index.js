@@ -1,5 +1,6 @@
 require("dotenv").config();
 const express = require("express");
+const cors = require("cors");
 const colors = require("colors");
 const router = require("./routers");
 const swaggerUi = require("swagger-ui-express");
@@ -9,6 +10,7 @@ const { iniciarConsumidor } = require("./messaging/consumer");
 const app = express();
 const port = process.env.PORT || 3000;
 
+app.use(cors());
 app.use(express.json());
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
