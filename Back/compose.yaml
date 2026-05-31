@@ -4,6 +4,8 @@ services:
   app:
     image: 'node:20.16.0-alpine'
     working_dir: /app
+    env_file:
+      - .env.docker
     volumes:
       - .:/app
     ports:
