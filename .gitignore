@@ -27,3 +27,7 @@ Thumbs.db
 # Arquivos temporários
 *.tmp
 *.swp
+
+# Agent skills
+.agents/
+skills-lock.json
