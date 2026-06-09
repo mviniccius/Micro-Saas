@@ -1,8 +1,9 @@
 FLUTTER_APP=app_cliente
+FLUTTER_PRESTADOR=app_prestador
 FRONT_DIR=front
 BACK_DIR=Back
 
-.PHONY: up down logs flutter front dev
+.PHONY: up down logs flutter flutter-prestador front dev
 
 # Sobe o backend (Docker)
 up:
@@ -20,6 +21,10 @@ logs:
 # Roda o app Flutter no Chrome na porta 4200
 flutter:
 	cd $(FLUTTER_APP) && flutter run -d chrome --web-port 4200
+
+# Roda o app Flutter do prestador no Chrome na porta 4201
+flutter-prestador:
+	cd $(FLUTTER_PRESTADOR) && flutter run -d chrome --web-port 4201
 
 # Roda o front web (Vite)
 front:
