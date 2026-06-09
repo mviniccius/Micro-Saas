@@ -34,3 +34,16 @@
 - `Back/middleware/autenticar.js`
 - `Back/middleware/autorizar.js`
 - `Back/.env` — contém `JWT_SECRET`
+
+---
+
+## [UI-01] Paleta de cores do app cliente
+
+**Status:** Pendente  
+**Prioridade:** Baixa  
+**Contexto:** Cor atual (laranja/trigo — `Colors.orange`) aprovada provisoriamente. A logo tem vermelho e amarelo.
+
+### O que definir
+- Cor primária baseada na logo (vermelho + amarelo)
+- Avaliar se mantém o laranja atual ou ajusta para combinar melhor com a marca
+- Aplicar paleta consistente em todas as telas do `app_cliente` e futuramente no `app_prestador`

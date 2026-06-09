@@ -29,19 +29,30 @@ async function criarPedidoCompleto(id_cliente, itens) {
   try {
     await client.query("BEGIN");
 
-    const totalPedido = itens.reduce((acumulador, item) => {
-      return acumulador + item.quantidade * item.preco;
-    }, 0);
+    // Busca preços do banco — nunca confiar no cliente para enviar preço
+    let totalPedido = 0;
+    const itensComPreco = [];
+
+    for (const item of itens) {
+      const res = await client.query(
+        "SELECT preco FROM produtos WHERE id_produto = $1",
+        [item.id_produto]
+      );
+      if (!res.rows.length) throw new Error(`Produto ${item.id_produto} não encontrado`);
+      const preco = parseFloat(res.rows[0].preco);
+      const totalItem = item.quantidade * preco;
+      totalPedido += totalItem;
+      itensComPreco.push({ ...item, preco, totalItem });
+    }
 
     const queryPedido = `INSERT INTO pedidos (id_cliente, valor_total, status) VALUES ($1, $2, 'P') RETURNING id_pedido`;
     const resPedido = await client.query(queryPedido, [id_cliente, totalPedido]);
     const idPedidoGerado = resPedido.rows[0].id_pedido;
 
-    for (const item of itens) {
-      const totalItem = item.quantidade * item.preco;
+    for (const item of itensComPreco) {
       await client.query(
         `INSERT INTO itens_pedido (id_pedido, id_produto, quantidade, preco_unitario, valor_total_item) VALUES ($1, $2, $3, $4, $5)`,
-        [idPedidoGerado, item.id_produto, item.quantidade, item.preco, totalItem]
+        [idPedidoGerado, item.id_produto, item.quantidade, item.preco, item.totalItem]
       );
     }
 
@@ -81,7 +92,7 @@ async function atualizarStatusPedido(id_pedido, novo_status) {
   const status_anterior = resAtual.rows[0].status;
 
   await pool.query(
-    "UPDATE pedidos SET status = $1, updated_at = NOW() WHERE id_pedido = $2",
+    "UPDATE pedidos SET status = $1, update_at = NOW() WHERE id_pedido = $2",
     [novo_status, id_pedido]
   );
 

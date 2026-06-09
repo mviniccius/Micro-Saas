@@ -46,9 +46,9 @@ class Pedido {
   factory Pedido.fromJson(Map<String, dynamic> json) {
     return Pedido(
       idPedido: json['id_pedido'],
-      idCliente: json['id_cliente'],
-      valorTotal: double.parse(json['valor_total'].toString()),
-      status: json['status'],
+      idCliente: json['id_cliente'] ?? 0,
+      valorTotal: double.parse((json['valor_total'] ?? json['total'] ?? 0).toString()),
+      status: json['status'] ?? 'P',
       itens: (json['itens'] as List<dynamic>? ?? [])
           .map((item) => ItemPedido.fromJson(item))
           .toList(),
