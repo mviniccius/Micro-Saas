@@ -14,13 +14,11 @@
   "description": "projeto back-end gestão",
   "dependencies": {
     "amqplib": "^2.0.1",
-    "body-parser": "^2.2.2",
     "colors": "^1.4.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "helmet": "^8.1.0",
-    "mongoose": "^9.0.1",
     "nodemon": "^3.1.11",
     "pg": "^8.16.3",
     "swagger-jsdoc": "^6.2.8",
