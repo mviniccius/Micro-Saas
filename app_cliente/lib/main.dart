@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'presentation/screens/login_screen.dart';
+import 'theme.dart';
 
 void main() {
   runApp(const AppCliente());
@@ -11,12 +12,9 @@ class AppCliente extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Delivery',
+      title: 'Panificadora Efraim',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
-        useMaterial3: true,
-      ),
+      theme: efraimTheme,
       home: const LoginScreen(),
     );
   }

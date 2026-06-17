@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/cliente_model.dart';
 
 class ClienteService {
-  final String _baseUrl = 'http://localhost:3000';
+  final String _baseUrl = 'http://10.0.2.2:3000';
 
   Future<Cliente?> buscarPorTelefone(String telefone) async {
     final response = await http.get(
