@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'theme.dart';
 import 'presentation/screens/login_screen.dart';
 
 void main() {
@@ -11,12 +12,9 @@ class AppPrestador extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Painel do Prestador',
+      title: 'Painel do Prestador — Efraim',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
-        useMaterial3: true,
-      ),
+      theme: efraimTheme,
       home: const LoginScreen(),
     );
   }

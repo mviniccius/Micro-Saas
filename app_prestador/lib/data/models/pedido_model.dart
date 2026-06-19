@@ -23,3 +23,35 @@ class PedidoPrestador {
         status: json['status'] ?? 'P',
       );
 }
+
+class ItemPedido {
+  final int idItensPedido;
+  final int idProduto;
+  final String nomeProduto;
+  final int quantidade;
+  final double precoUnitario;
+  final double valorTotalItem;
+
+  const ItemPedido({
+    required this.idItensPedido,
+    required this.idProduto,
+    required this.nomeProduto,
+    required this.quantidade,
+    required this.precoUnitario,
+    required this.valorTotalItem,
+  });
+
+  factory ItemPedido.fromJson(Map<String, dynamic> json) => ItemPedido(
+    idItensPedido: json['id_itens_pedido'] ?? 0,
+    idProduto: json['id_produto'] ?? 0,
+    nomeProduto: json['nome_produto'] ?? '',
+    quantidade: json['quantidade'] ?? 0,
+    precoUnitario: double.parse((json['preco_unitario'] ?? 0).toString()),
+    valorTotalItem: double.parse((json['valor_total_item'] ?? 0).toString()),
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id_produto': idProduto,
+    'quantidade': quantidade,
+  };
+}

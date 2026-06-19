@@ -91,4 +91,7 @@ router.post("/", (req, res) => pedidoController.criar(req, res));
  */
 router.patch("/:id/status", (req, res) => pedidoController.atualizarStatus(req, res));
 
+router.get("/:id/itens", (req, res) => pedidoController.buscarItens(req, res));
+router.put("/:id/itens", (req, res) => pedidoController.atualizarItens(req, res));
+
 module.exports = router;

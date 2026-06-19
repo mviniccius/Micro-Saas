@@ -68,28 +68,36 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(
-                    Icons.storefront,
-                    size: 72,
-                    color: Theme.of(context).colorScheme.primary,
+                  Center(
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF173426),
+                        borderRadius: BorderRadius.all(Radius.circular(4)),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'PE',
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            color: Color(0xFF79591D),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Text(
                     'Painel do Prestador',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Entre com suas credenciais',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: Colors.grey),
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 40),
                   TextFormField(
@@ -142,9 +150,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: _carregando ? null : _entrar,
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
                     child: _carregando
                         ? const SizedBox(
                             height: 20,
@@ -152,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: Colors.white),
                           )
-                        : const Text('Entrar', style: TextStyle(fontSize: 16)),
+                        : const Text('Entrar'),
                   ),
                 ],
               ),

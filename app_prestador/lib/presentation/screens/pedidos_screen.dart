@@ -4,6 +4,7 @@ import '../../data/models/pedido_model.dart';
 import '../../data/models/usuario_model.dart';
 import '../../data/services/pedido_service.dart';
 import 'login_screen.dart';
+import 'pedido_detalhe_screen.dart';
 
 class PedidosScreen extends StatefulWidget {
   final Usuario usuario;
@@ -117,6 +118,12 @@ class _PedidosScreenState extends State<PedidosScreen> {
                       return _PedidoCard(
                         pedido: _pedidos[index],
                         onAtualizarStatus: _atualizarStatus,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PedidoDetalheScreen(pedido: _pedidos[index]),
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -128,80 +135,88 @@ class _PedidosScreenState extends State<PedidosScreen> {
 class _PedidoCard extends StatelessWidget {
   final PedidoPrestador pedido;
   final Future<void> Function(PedidoPrestador, String) onAtualizarStatus;
+  final VoidCallback? onTap;
 
   const _PedidoCard({
     required this.pedido,
     required this.onAtualizarStatus,
+    this.onTap,
   });
 
   static const _statusInfo = {
-    'P': (label: 'Pendente',     color: Colors.orange),
-    'A': (label: 'Em Produção',  color: Colors.blue),
-    'C': (label: 'Concluído',    color: Colors.green),
-    'X': (label: 'Cancelado',    color: Colors.red),
+    'P': (label: 'Recebido',     color: Color(0xFFE65100)),
+    'A': (label: 'Em Produção',  color: Color(0xFF1565C0)),
+    'S': (label: 'Separado',     color: Color(0xFF6A1B9A)),
+    'E': (label: 'Em Entrega',   color: Color(0xFF00695C)),
+    'C': (label: 'Entregue',     color: Color(0xFF2E7D32)),
+    'X': (label: 'Cancelado',    color: Color(0xFFC62828)),
   };
 
   @override
   Widget build(BuildContext context) {
     final info = _statusInfo[pedido.status.trim()] ??
-        (label: 'Desconhecido', color: Colors.grey);
+        (label: 'Desconhecido', color: const Color(0xFF9E9E9E));
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Pedido #${pedido.idPedido}',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                _StatusBadge(label: info.label, color: info.color),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              pedido.nomeCliente,
-              style: const TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 8),
-            const Divider(height: 1),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'R\$ ${pedido.valorTotal.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Theme.of(context).colorScheme.primary,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Pedido #${pedido.idPedido}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                ),
-                _AcoesStatus(
-                  status: pedido.status.trim(),
-                  onAvancar: () {
-                    final proximo = _proximoStatus(pedido.status.trim());
-                    if (proximo != null) onAtualizarStatus(pedido, proximo);
-                  },
-                  onCancelar: pedido.status.trim() == 'P'
-                      ? () => onAtualizarStatus(pedido, 'X')
-                      : null,
-                ),
-              ],
-            ),
-          ],
+                  _StatusBadge(label: info.label, color: info.color),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                pedido.nomeCliente,
+                style: const TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              const Divider(height: 1),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'R\$ ${pedido.valorTotal.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  _AcoesStatus(
+                    status: pedido.status.trim(),
+                    onAvancar: () {
+                      final proximo = _proximoStatus(pedido.status.trim());
+                      if (proximo != null) onAtualizarStatus(pedido, proximo);
+                    },
+                    onCancelar: pedido.status.trim() == 'P'
+                        ? () => onAtualizarStatus(pedido, 'X')
+                        : null,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   String? _proximoStatus(String atual) {
-    const fluxo = {'P': 'A', 'A': 'C'};
+    const fluxo = {'P': 'A', 'A': 'S', 'S': 'E', 'E': 'C'};
     return fluxo[atual];
   }
 }
@@ -223,6 +238,8 @@ class _AcoesStatus extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final labels = {'P': 'Aceitar', 'A': 'Separar', 'S': 'Despachar', 'E': 'Confirmar Entrega'};
+
     return Row(
       children: [
         if (onCancelar != null)
@@ -234,7 +251,7 @@ class _AcoesStatus extends StatelessWidget {
         if (onCancelar != null) const SizedBox(width: 8),
         FilledButton(
           onPressed: onAvancar,
-          child: Text(status == 'P' ? 'Aceitar' : 'Concluir'),
+          child: Text(labels[status] ?? 'Avançar'),
         ),
       ],
     );

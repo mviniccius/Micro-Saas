@@ -3,6 +3,8 @@ const {
   listarPedidosPorTelefone,
   criarPedidoCompleto,
   atualizarStatusPedido,
+  listarItensPedido,
+  atualizarItens,
 } = require("../service/pedidoService");
 
 class PedidoController {
@@ -54,7 +56,43 @@ class PedidoController {
       if (error.message.startsWith("Status inválido")) {
         return res.status(400).json({ error: error.message });
       }
+      if (error.message.startsWith("Transição inválida")) {
+        return res.status(422).json({ error: error.message });
+      }
       return res.status(500).json({ error: "Erro ao atualizar status do pedido" });
+    }
+  }
+
+  async buscarItens(req, res) {
+    try {
+      const { id } = req.params;
+      const itens = await listarItensPedido(id);
+      return res.json(itens);
+    } catch (error) {
+      if (error.message === "Pedido não encontrado") {
+        return res.status(404).json({ error: error.message });
+      }
+      return res.status(500).json({ error: "Erro ao buscar itens do pedido" });
+    }
+  }
+
+  async atualizarItens(req, res) {
+    try {
+      const { id } = req.params;
+      const { itens } = req.body;
+      const resultado = await atualizarItens(id, itens);
+      return res.json(resultado);
+    } catch (error) {
+      if (error.message === "Pedido não encontrado") {
+        return res.status(404).json({ error: error.message });
+      }
+      if (error.message.startsWith("Itens só podem ser editados") || error.message.startsWith("Pedido deve ter")) {
+        return res.status(422).json({ error: error.message });
+      }
+      if (error.message.startsWith("Produto")) {
+        return res.status(400).json({ error: error.message });
+      }
+      return res.status(500).json({ error: "Erro ao atualizar itens do pedido" });
     }
   }
 }
