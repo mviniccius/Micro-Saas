@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/models/pedido_model.dart';
+import 'editar_pedido_screen.dart';
 
 const _primary = Color(0xFF173426);
 const _secondary = Color(0xFF79591D);
@@ -161,6 +162,25 @@ class PedidoDetalheScreen extends StatelessWidget {
                 if (!cancelado) ...[
                   _MapaPlaceholder(statusCode: statusCode),
                   const SizedBox(height: 24),
+                ],
+
+                // ── Botão editar (só status P) ───────────────────────
+                if (statusCode == 'P') ...[
+                  FilledButton.icon(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => EditarPedidoScreen(pedido: pedido),
+                      ),
+                    ),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('Editar Pedido'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 48),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                 ],
 
                 // ── Resumo do pedido ──────────────────────────────────

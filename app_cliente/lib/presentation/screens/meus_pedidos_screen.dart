@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/models/cliente_model.dart';
 import '../../data/models/pedido_model.dart';
 import '../../data/services/pedido_service.dart';
+import 'pedido_detalhe_screen.dart';
 
 class MeusPedidosScreen extends StatefulWidget {
   final Cliente cliente;
@@ -93,7 +94,19 @@ class _MeusPedidosScreenState extends State<MeusPedidosScreen> {
                     itemCount: _pedidos.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
-                      return _PedidoCard(pedido: _pedidos[index]);
+                      final pedido = _pedidos[index];
+                      return _PedidoCard(
+                        pedido: pedido,
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PedidoDetalheScreen(pedido: pedido),
+                            ),
+                          );
+                          _buscarPedidos();
+                        },
+                      );
                     },
                   ),
                 ),
@@ -103,8 +116,9 @@ class _MeusPedidosScreenState extends State<MeusPedidosScreen> {
 
 class _PedidoCard extends StatelessWidget {
   final Pedido pedido;
+  final VoidCallback? onTap;
 
-  const _PedidoCard({required this.pedido});
+  const _PedidoCard({required this.pedido, this.onTap});
 
   static const _statusInfo = {
     'P': (label: 'Pendente',     color: Colors.orange),
@@ -119,7 +133,10 @@ class _PedidoCard extends StatelessWidget {
         (label: 'Desconhecido', color: Colors.grey);
 
     return Card(
-      child: Padding(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,6 +171,7 @@ class _PedidoCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

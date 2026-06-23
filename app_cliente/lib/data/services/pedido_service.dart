@@ -46,4 +46,32 @@ class PedidoService {
 
     throw Exception('Erro ao criar pedido: ${response.statusCode}');
   }
+
+  Future<List<ItemPedido>> buscarItens(int idPedido) async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/pedidos/$idPedido/itens'),
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> json = jsonDecode(response.body);
+      return json.map((item) => ItemPedido.fromJson(item)).toList();
+    }
+
+    throw Exception('Erro ao buscar itens: ${response.statusCode}');
+  }
+
+  Future<void> atualizarItens(int idPedido, List<ItemPedido> itens) async {
+    final response = await http.put(
+      Uri.parse('$_baseUrl/pedidos/$idPedido/itens'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'itens': itens.map((i) => {'id_produto': i.idProduto, 'quantidade': i.quantidade}).toList(),
+      }),
+    );
+
+    if (response.statusCode == 200) return;
+
+    final erro = jsonDecode(response.body)['erro'] ?? 'Erro ao atualizar itens';
+    throw Exception(erro);
+  }
 }

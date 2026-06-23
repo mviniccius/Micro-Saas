@@ -1,11 +1,13 @@
 class ItemPedido {
   final int idProduto;
+  final String? nomeProduto;
   final int quantidade;
   final double precoUnitario;
   final double valorTotalItem;
 
   ItemPedido({
     required this.idProduto,
+    this.nomeProduto,
     required this.quantidade,
     required this.precoUnitario,
     required this.valorTotalItem,
@@ -14,9 +16,10 @@ class ItemPedido {
   factory ItemPedido.fromJson(Map<String, dynamic> json) {
     return ItemPedido(
       idProduto: json['id_produto'],
+      nomeProduto: json['nome_produto'],
       quantidade: json['quantidade'],
-      precoUnitario: double.parse(json['preco_unitario'].toString()),
-      valorTotalItem: double.parse(json['valor_total_item'].toString()),
+      precoUnitario: double.parse((json['preco_unitario'] ?? 0).toString()),
+      valorTotalItem: double.parse((json['valor_total_item'] ?? 0).toString()),
     );
   }
 
