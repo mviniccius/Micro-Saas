@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/pedido_model.dart';
 
 class PedidoService {
-  static const _base = 'http://10.0.2.2:3000';
+  static const _base = 'http://localhost:3000';
 
   Future<List<PedidoPrestador>> listarPedidos() async {
     final response = await http.get(Uri.parse('$_base/pedidos'));

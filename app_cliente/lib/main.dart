@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'presentation/screens/login_screen.dart';
+import 'presentation/screens/welcome_screen.dart';
 import 'theme.dart';
 
 void main() {
@@ -15,7 +15,7 @@ class AppCliente extends StatelessWidget {
       title: 'Panificadora Efraim',
       debugShowCheckedModeBanner: false,
       theme: efraimTheme,
-      home: const LoginScreen(),
+      home: const WelcomeScreen(),
     );
   }
 }

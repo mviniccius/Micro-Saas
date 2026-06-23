@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/usuario_model.dart';
 
 class AuthService {
-  static const _base = 'http://10.0.2.2:3000';
+  static const _base = 'http://localhost:3000';
 
   Future<Usuario> login(String email, String senha) async {
     final response = await http.post(
