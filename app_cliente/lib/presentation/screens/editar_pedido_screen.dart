@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../data/models/pedido_model.dart';
+import '../../data/models/produto_model.dart';
 import '../../data/services/pedido_service.dart';
+import '../../data/services/produto_service.dart';
 
 class EditarPedidoScreen extends StatefulWidget {
   final Pedido pedido;
@@ -13,28 +15,90 @@ class EditarPedidoScreen extends StatefulWidget {
 
 class _EditarPedidoScreenState extends State<EditarPedidoScreen> {
   final _pedidoService = PedidoService();
+  final _produtoService = ProdutoService();
   List<ItemPedido> _itens = [];
+  List<Produto> _catalogo = [];
   bool _carregando = true;
   bool _salvando = false;
 
   @override
   void initState() {
     super.initState();
-    _carregarItens();
+    _carregarDados();
   }
 
-  Future<void> _carregarItens() async {
+  Future<void> _carregarDados() async {
     try {
-      final itens = await _pedidoService.buscarItens(widget.pedido.idPedido);
-      if (mounted) setState(() { _itens = itens; _carregando = false; });
+      // Busca itens do pedido e catálogo em paralelo
+      final resultados = await Future.wait([
+        _pedidoService.buscarItens(widget.pedido.idPedido),
+        _produtoService.listarProdutos(),
+      ]);
+      if (mounted) {
+        setState(() {
+          _itens = resultados[0] as List<ItemPedido>;
+          _catalogo = resultados[1] as List<Produto>;
+          _carregando = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _carregando = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar itens: $e')),
+          SnackBar(content: Text('Erro ao carregar dados: $e')),
         );
       }
     }
+  }
+
+  // Abre um seletor com os produtos do catálogo que ainda não estão no pedido
+  Future<void> _adicionarProduto() async {
+    final idsNoPedido = _itens.map((i) => i.idProduto).toSet();
+    final disponiveis = _catalogo
+        .where((p) => !idsNoPedido.contains(p.idProduto))
+        .toList();
+
+    if (disponiveis.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Todos os produtos já estão no pedido.')),
+      );
+      return;
+    }
+
+    final escolhido = await showModalBottomSheet<Produto>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => ListView(
+        shrinkWrap: true,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text(
+              'Adicionar produto',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ),
+          for (final p in disponiveis)
+            ListTile(
+              title: Text(p.nomeProduto),
+              subtitle: Text('R\$ ${p.preco.toStringAsFixed(2)} un.'),
+              trailing: const Icon(Icons.add_circle_outline),
+              onTap: () => Navigator.pop(context, p),
+            ),
+        ],
+      ),
+    );
+
+    if (escolhido == null) return;
+    setState(() {
+      _itens.add(ItemPedido(
+        idProduto: escolhido.idProduto,
+        nomeProduto: escolhido.nomeProduto,
+        quantidade: 1,
+        precoUnitario: escolhido.preco,
+        valorTotalItem: escolhido.preco,
+      ));
+    });
   }
 
   void _alterarQuantidade(int index, int delta) {
@@ -152,6 +216,15 @@ class _EditarPedidoScreenState extends State<EditarPedidoScreen> {
                   ),
                   child: Column(
                     children: [
+                      OutlinedButton.icon(
+                        onPressed: _adicionarProduto,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Adicionar produto'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 44),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [

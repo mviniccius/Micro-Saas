@@ -29,13 +29,32 @@ Bem produzido pela panificadora disponível para pedido. Possui preço vigente.
 ## Financeiro (planejado — Fase 2)
 
 **Fatura**
-Agrupamento de Pedidos de um Cliente dentro de um Período de Faturamento. Gerada automaticamente ao fechar o período.
+Agrupamento de Pedidos com status `C` (Entregue) de um Cliente dentro de um Período de Faturamento. Criada manualmente pelo Funcionário via botão "Fechar Fatura"; futuramente por job automático. Pedidos em andamento ou cancelados não entram na Fatura — ficam para o próximo período.
+
+Um Pedido entra em **no máximo uma Fatura**. Pedidos entregues após o fechamento (entrega atrasada) entram na próxima Fatura.
+
+Ciclo de vida da Fatura:
+```
+ABERTA → PARCIALMENTE_PAGA → PAGA
+   ↓
+VENCIDA
+```
+
+| Status             | Significado                                                    |
+|--------------------|----------------------------------------------------------------|
+| `ABERTA`           | Fatura fechada, aguardando pagamento                          |
+| `PARCIALMENTE_PAGA`| Um ou mais Pagamentos registrados, mas valor total não quitado|
+| `PAGA`             | Soma dos Pagamentos cobre o valor total da Fatura             |
+| `VENCIDA`          | Prazo de pagamento expirado sem quitação total                |
 
 **Período de Faturamento**
 Ciclo de cobrança de um Cliente: `DIARIO`, `SEMANAL` ou `MENSAL`. Definido pela Panificadora no cadastro do Cliente — o Cliente visualiza mas não altera.
 
 **Pagamento**
-Liquidação total ou parcial de uma Fatura pelo Cliente.
+Liquidação total ou parcial de uma Fatura pelo Cliente. Formas aceitas: `PIX`, `DINHEIRO`, `CREDITO`. Múltiplos Pagamentos podem ser registrados contra a mesma Fatura. O backend recalcula o status da Fatura a cada Pagamento comparando a soma dos Pagamentos com o valor total.
+
+**Crédito do Cliente**
+Saldo a favor do Cliente, gerado quando um Pagamento excede o saldo devedor de uma Fatura. O excedente fica disponível e é abatido **automaticamente** no fechamento da próxima Fatura, registrado como um Pagamento com forma `CREDITO`. O Crédito é rastreado em um razão (ledger): cada geração e cada consumo é uma movimentação vinculada à Fatura de origem. O Cliente visualiza seu saldo na aba de assinaturas.
 
 > O campo `ciclo_faturamento` precisa ser adicionado à tabela `clientes` quando o Financeiro for implementado.
 

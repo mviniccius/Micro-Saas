@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/models/cliente_model.dart';
 import '../../data/models/produto_model.dart';
 import '../../data/models/pedido_model.dart';
+import '../../data/models/fatura_model.dart';
 import '../../data/services/produto_service.dart';
 import '../../data/services/pedido_service.dart';
+import '../../data/services/fatura_service.dart';
 import 'criar_pedido_screen.dart';
 import 'pedido_detalhe_screen.dart';
 
@@ -47,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _DashboardTab(cliente: widget.cliente, onNovoPedido: () => _goTo(1)),
           _CatalogoTab(cliente: widget.cliente),
           _PedidosTab(cliente: widget.cliente, onNovoPedido: () => _goTo(1)),
-          const _FinanceiroTab(),
+          _FinanceiroTab(cliente: widget.cliente),
           const _AssinaturaTab(),
         ],
       ),
@@ -142,14 +145,7 @@ class _DashboardTab extends StatelessWidget {
             delegate: SliverChildListDelegate([
               _HeroBanner(onExplorar: onNovoPedido),
               const SizedBox(height: 20),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: _ProximaEntregaCard()),
-                  const SizedBox(width: 12),
-                  Expanded(child: _UltimoPedidoCard(onRepetir: onNovoPedido)),
-                ],
-              ),
+              _UltimoPedidoCard(onRepetir: onNovoPedido),
               const SizedBox(height: 16),
               _QuickShortcuts(onNovoPedido: onNovoPedido),
               const SizedBox(height: 24),
@@ -213,58 +209,6 @@ class _HeroBanner extends StatelessWidget {
                   style: GoogleFonts.montserrat(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2)),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProximaEntregaCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(12),
-        border: Border(
-          left: const BorderSide(color: _secondary, width: 4),
-          top: BorderSide(color: _primary.withValues(alpha: 0.1)),
-          right: BorderSide(color: _primary.withValues(alpha: 0.1)),
-          bottom: BorderSide(color: _primary.withValues(alpha: 0.1)),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text('Próxima Entrega',
-                    style: GoogleFonts.cinzel(fontSize: 13, fontWeight: FontWeight.w500, color: _primary)),
-              ),
-              const Icon(Icons.local_shipping, color: _secondary, size: 24),
-            ],
-          ),
-          Text('Rastreamento', style: GoogleFonts.montserrat(fontSize: 11, color: _onSurfaceVariant)),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: 0.75,
-              backgroundColor: _outlineVariant.withValues(alpha: 0.3),
-              valueColor: const AlwaysStoppedAnimation<Color>(_secondary),
-              minHeight: 6,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text('A caminho',
-              style: GoogleFonts.montserrat(fontSize: 11, fontWeight: FontWeight.w600, color: _secondary)),
-          const SizedBox(height: 10),
-          Text('Horário Previsto', style: GoogleFonts.montserrat(fontSize: 10, color: _onSurfaceVariant)),
-          Text('06:45 – 07:15',
-              style: GoogleFonts.cinzel(fontSize: 14, fontWeight: FontWeight.w500, color: _primary)),
         ],
       ),
     );
@@ -1136,345 +1080,409 @@ class _PedidoCard extends StatelessWidget {
 // ─────────────────────────────────────────────
 // Tab 3 — Área Financeira
 // ─────────────────────────────────────────────
-class _FinanceiroTab extends StatelessWidget {
-  const _FinanceiroTab();
+class _FinanceiroTab extends StatefulWidget {
+  final Cliente cliente;
+  const _FinanceiroTab({required this.cliente});
 
-  static const _barData = [
-    (mes: 'Jan', h: 0.50),
-    (mes: 'Fev', h: 0.63),
-    (mes: 'Mar', h: 0.82),
-    (mes: 'Abr', h: 0.56),
-    (mes: 'Mai', h: 0.75),
-    (mes: 'Jun', h: 0.94),
-  ];
+  @override
+  State<_FinanceiroTab> createState() => _FinanceiroTabState();
+}
 
-  static const _faturas = [
-    (id: '#EF-9821', venc: '15/10/2024', valor: 'R\$ 1.250,00'),
-    (id: '#EF-9755', venc: '25/10/2024', valor: 'R\$ 3.000,80'),
-  ];
+class _FinanceiroTabState extends State<_FinanceiroTab> {
+  final _faturaService = FaturaService();
+  late Future<ResumoFinanceiro> _future;
 
-  static const _historico = [
-    (titulo: 'Fatura Setembro', data: 'Pago em 14/09/2024', valor: 'R\$ 2.400,00'),
-    (titulo: 'Fatura Agosto',   data: 'Pago em 15/08/2024', valor: 'R\$ 1.950,50'),
-    (titulo: 'Fatura Julho',    data: 'Pago em 12/07/2024', valor: 'R\$ 2.120,00'),
-  ];
+  // Chave PIX estática — provisória até a integração com o gateway (Efí/Asaas).
+  static const _chavePix = 'financeiro@panificadoraefraim.com.br';
+
+  static const _cicloLabel = {
+    'DIARIO': 'Diário',
+    'SEMANAL': 'Semanal',
+    'MENSAL': 'Mensal',
+  };
+
+  // status da fatura → (label, cor)
+  static const _statusInfo = {
+    'ABERTA':            (label: 'Em Aberto',   color: _secondary),
+    'PARCIALMENTE_PAGA': (label: 'Parcial',     color: Color(0xFF1565C0)),
+    'PAGA':              (label: 'Paga',        color: _primary),
+    'VENCIDA':           (label: 'Vencida',     color: Color(0xFFBA1A1A)),
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _carregar();
+  }
+
+  void _carregar() {
+    _future = _faturaService.buscarResumo(widget.cliente.idCliente);
+  }
+
+  String _moeda(double v) => 'R\$ ${v.toStringAsFixed(2).replaceAll('.', ',')}';
+
+  String _data(DateTime? d) => d == null
+      ? '—'
+      : '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  Future<void> _recarregar() async {
+    setState(_carregar);
+    await _future;
+  }
+
+  void _mostrarPix(Fatura fatura) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _background,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: _outlineVariant, borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text('Pagamento via PIX',
+                style: GoogleFonts.cinzel(fontSize: 20, fontWeight: FontWeight.w600, color: _primary)),
+            const SizedBox(height: 4),
+            Text('Fatura #${fatura.idFatura.toString().padLeft(5, '0')}',
+                style: GoogleFonts.montserrat(fontSize: 12, color: _onSurfaceVariant)),
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _primary, borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('VALOR A PAGAR',
+                    style: GoogleFonts.montserrat(fontSize: 10, fontWeight: FontWeight.w700,
+                        color: Colors.white.withValues(alpha: 0.6), letterSpacing: 1)),
+                const SizedBox(height: 4),
+                Text(_moeda(fatura.saldoDevedor),
+                    style: GoogleFonts.cinzel(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white)),
+              ]),
+            ),
+            const SizedBox(height: 16),
+            Text('CHAVE PIX',
+                style: GoogleFonts.montserrat(fontSize: 10, fontWeight: FontWeight.w700,
+                    color: _secondary, letterSpacing: 1)),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: _surfaceContainer,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: _outlineVariant.withValues(alpha: 0.4)),
+              ),
+              child: Row(children: [
+                Expanded(
+                  child: Text(_chavePix,
+                      style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w600, color: _primary)),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Clipboard.setData(const ClipboardData(text: _chavePix));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Chave PIX copiada!')),
+                    );
+                  },
+                  child: const Icon(Icons.copy, size: 20, color: _secondary),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 16),
+            Row(children: [
+              Icon(Icons.info_outline, size: 16, color: _onSurfaceVariant),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Após o pagamento, o recebimento é confirmado pela equipe da Efraim.',
+                  style: GoogleFonts.montserrat(fontSize: 12, color: _onSurfaceVariant, height: 1.4),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.pop(context),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _primary,
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: Text('Fechar',
+                    style: GoogleFonts.montserrat(fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _background,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            backgroundColor: _background,
-            surfaceTintColor: Colors.transparent,
-            elevation: 0,
-            pinned: true,
-            title: Text('Área Financeira',
-                style: GoogleFonts.cinzel(fontSize: 18, fontWeight: FontWeight.w600, color: _primary)),
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(1),
-              child: Divider(height: 1, color: _outlineVariant.withValues(alpha: 0.3)),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-
-                // ── Header ──────────────────────────────────────
-                Text('Painel do Cliente',
-                    style: GoogleFonts.montserrat(
-                        fontSize: 11, fontWeight: FontWeight.w700,
-                        color: _secondary, letterSpacing: 1.5)),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Área Financeira',
-                        style: GoogleFonts.cinzel(fontSize: 22, fontWeight: FontWeight.w600, color: _primary)),
-                    Row(children: [
-                      _ActionBtn(icon: Icons.account_balance_wallet_outlined, label: 'PIX', filled: true),
-                      const SizedBox(width: 8),
-                      _ActionBtn(icon: Icons.download_outlined, label: 'Relatórios', filled: false),
-                    ]),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // ── Total em aberto ──────────────────────────────
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: _primary,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Total em Aberto',
-                          style: GoogleFonts.montserrat(
-                              fontSize: 11, fontWeight: FontWeight.w700,
-                              color: Colors.white.withValues(alpha: 0.6), letterSpacing: 1)),
-                      const SizedBox(height: 6),
-                      Text('R\$ 4.250,80',
-                          style: GoogleFonts.cinzel(fontSize: 32, fontWeight: FontWeight.w700, color: Colors.white)),
-                      const SizedBox(height: 16),
-                      Text('Próximo vencimento: 15 de Outubro',
-                          style: GoogleFonts.montserrat(fontSize: 12, color: Colors.white.withValues(alpha: 0.7))),
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: 0.66,
-                          backgroundColor: Colors.white.withValues(alpha: 0.15),
-                          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFFDEAC)),
-                          minHeight: 6,
-                        ),
-                      ),
-                    ],
+      body: RefreshIndicator(
+        onRefresh: _recarregar,
+        child: FutureBuilder<ResumoFinanceiro>(
+          future: _future,
+          builder: (context, snapshot) {
+            return CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverAppBar(
+                  backgroundColor: _background,
+                  surfaceTintColor: Colors.transparent,
+                  elevation: 0,
+                  pinned: true,
+                  title: Text('Área Financeira',
+                      style: GoogleFonts.cinzel(fontSize: 18, fontWeight: FontWeight.w600, color: _primary)),
+                  bottom: PreferredSize(
+                    preferredSize: const Size.fromHeight(1),
+                    child: Divider(height: 1, color: _outlineVariant.withValues(alpha: 0.3)),
                   ),
                 ),
-                const SizedBox(height: 20),
 
-                // ── Gráfico consumo mensal ───────────────────────
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: _surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _outlineVariant.withValues(alpha: 0.15)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Consumo Mensal',
-                              style: GoogleFonts.cinzel(fontSize: 16, fontWeight: FontWeight.w500, color: _primary)),
-                          Row(children: [
-                            _Legenda(color: _primary, label: 'Compras'),
-                            const SizedBox(width: 12),
-                            _Legenda(color: _secondary, label: 'Pagamentos'),
-                          ]),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        height: 140,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: _barData.map((d) {
-                            return Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 4),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    Flexible(
-                                      child: FractionallySizedBox(
-                                        heightFactor: d.h,
-                                        alignment: Alignment.bottomCenter,
-                                        child: Stack(
-                                          children: [
-                                            Container(
-                                              decoration: BoxDecoration(
-                                                color: _secondary.withValues(alpha: 0.15),
-                                                borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
-                                              ),
-                                            ),
-                                            Positioned(
-                                              bottom: 0, left: 0, right: 0,
-                                              height: 80 * d.h,
-                                              child: Container(
-                                                decoration: BoxDecoration(
-                                                  color: _primary,
-                                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(d.mes,
-                                        style: GoogleFonts.montserrat(fontSize: 10, color: _onSurfaceVariant)),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // ── Faturas em aberto ────────────────────────────
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: _surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _outlineVariant.withValues(alpha: 0.15)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Faturas em Aberto',
-                          style: GoogleFonts.cinzel(fontSize: 16, fontWeight: FontWeight.w500, color: _primary)),
-                      const SizedBox(height: 16),
-                      Divider(color: _outlineVariant.withValues(alpha: 0.3)),
-                      // Cabeçalho tabela
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Row(children: [
-                          Expanded(child: _ThLabel('ID PEDIDO')),
-                          Expanded(child: _ThLabel('VENCIMENTO')),
-                          Expanded(child: _ThLabel('VALOR')),
-                          _ThLabel('AÇÕES'),
-                        ]),
-                      ),
-                      Divider(color: _outlineVariant.withValues(alpha: 0.3)),
-                      ..._faturas.map((f) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: Row(children: [
-                          Expanded(
-                            child: Text(f.id,
-                                style: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w700, color: _primary)),
-                          ),
-                          Expanded(
-                            child: Text(f.venc,
-                                style: GoogleFonts.montserrat(fontSize: 12, color: _onSurfaceVariant)),
-                          ),
-                          Expanded(
-                            child: Text(f.valor,
-                                style: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w600)),
-                          ),
-                          Row(children: [
-                            Icon(Icons.description_outlined, size: 20, color: _secondary),
-                            const SizedBox(width: 8),
-                            Icon(Icons.qr_code_2, size: 20, color: _secondary),
-                          ]),
-                        ]),
-                      )),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // ── Histórico de pagamentos ──────────────────────
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: _surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _outlineVariant.withValues(alpha: 0.15)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Histórico',
-                              style: GoogleFonts.cinzel(fontSize: 16, fontWeight: FontWeight.w500, color: _primary)),
-                          Text('VER TUDO',
-                              style: GoogleFonts.montserrat(
-                                  fontSize: 10, fontWeight: FontWeight.w700,
-                                  color: _secondary, letterSpacing: 1)),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      ..._historico.asMap().entries.map((e) => Padding(
-                        padding: EdgeInsets.only(bottom: e.key < _historico.length - 1 ? 16 : 0,
-                            top: e.key > 0 ? 0 : 0),
-                        child: Row(children: [
-                          Container(
-                            width: 40, height: 40,
-                            decoration: BoxDecoration(
-                              color: _primary.withValues(alpha: 0.06),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.check_circle_outline, color: _primary, size: 20),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(e.value.titulo,
-                                style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w600, color: _primary)),
-                            Text(e.value.data,
-                                style: GoogleFonts.montserrat(fontSize: 11, color: _onSurfaceVariant)),
-                          ])),
-                          Text(e.value.valor,
-                              style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w700, color: _secondary)),
-                        ]),
-                      )),
-                    ],
-                  ),
-                ),
-              ]),
-            ),
-          ),
-        ],
+                if (snapshot.connectionState == ConnectionState.waiting)
+                  const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (snapshot.hasError)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Icon(Icons.cloud_off, size: 56, color: _outlineVariant),
+                        const SizedBox(height: 12),
+                        Text('Não foi possível carregar suas faturas',
+                            style: GoogleFonts.montserrat(fontSize: 13, color: _onSurfaceVariant)),
+                        const SizedBox(height: 12),
+                        OutlinedButton(onPressed: _recarregar, child: const Text('Tentar novamente')),
+                      ]),
+                    ),
+                  )
+                else
+                  _conteudo(snapshot.data!),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
-}
 
-class _ActionBtn extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool filled;
-  const _ActionBtn({required this.icon, required this.label, required this.filled});
+  Widget _conteudo(ResumoFinanceiro r) {
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
+      sliver: SliverList(
+        delegate: SliverChildListDelegate([
+          // ── Assinatura (ciclo de faturamento) ────────────
+          Row(children: [
+            const Icon(Icons.event_repeat, size: 16, color: _secondary),
+            const SizedBox(width: 6),
+            Text('ASSINATURA: ${(_cicloLabel[r.cicloFaturamento] ?? r.cicloFaturamento).toUpperCase()}',
+                style: GoogleFonts.montserrat(
+                    fontSize: 11, fontWeight: FontWeight.w700, color: _secondary, letterSpacing: 1)),
+          ]),
+          const SizedBox(height: 12),
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: filled ? _primary : Colors.transparent,
-        borderRadius: BorderRadius.circular(6),
-        border: filled ? null : Border.all(color: _secondary.withValues(alpha: 0.4)),
+          // ── Total em aberto + crédito ────────────────────
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(color: _primary, borderRadius: BorderRadius.circular(12)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Total em Aberto',
+                  style: GoogleFonts.montserrat(fontSize: 11, fontWeight: FontWeight.w700,
+                      color: Colors.white.withValues(alpha: 0.6), letterSpacing: 1)),
+              const SizedBox(height: 6),
+              Text(_moeda(r.totalEmAberto),
+                  style: GoogleFonts.cinzel(fontSize: 32, fontWeight: FontWeight.w700, color: Colors.white)),
+              if (r.saldoCredito > 0) ...[
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2E4B3C),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                    Row(children: [
+                      const Icon(Icons.savings_outlined, size: 16, color: Color(0xFFFFDEAC)),
+                      const SizedBox(width: 8),
+                      Text('Crédito disponível',
+                          style: GoogleFonts.montserrat(fontSize: 12, color: Colors.white.withValues(alpha: 0.85))),
+                    ]),
+                    Text(_moeda(r.saldoCredito),
+                        style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w700,
+                            color: const Color(0xFFFFDEAC))),
+                  ]),
+                ),
+              ],
+            ]),
+          ),
+          const SizedBox(height: 24),
+
+          // ── Faturas ──────────────────────────────────────
+          Text('Faturas',
+              style: GoogleFonts.cinzel(fontSize: 18, fontWeight: FontWeight.w500, color: _primary)),
+          const SizedBox(height: 12),
+
+          if (r.faturas.isEmpty)
+            _vazio('Nenhuma fatura emitida ainda.')
+          else
+            ...r.faturas.map(_faturaCard),
+
+          const SizedBox(height: 24),
+
+          // ── Histórico de pagamentos ──────────────────────
+          if (r.historicoPagamentos.isNotEmpty) ...[
+            Text('Histórico de Pagamentos',
+                style: GoogleFonts.cinzel(fontSize: 18, fontWeight: FontWeight.w500, color: _primary)),
+            const SizedBox(height: 12),
+            ...r.historicoPagamentos.map(_pagamentoItem),
+          ],
+        ]),
       ),
-      child: Row(children: [
-        Icon(icon, size: 14, color: filled ? Colors.white : _secondary),
-        const SizedBox(width: 4),
-        Text(label,
-            style: GoogleFonts.montserrat(
-                fontSize: 10, fontWeight: FontWeight.w700,
-                color: filled ? Colors.white : _secondary, letterSpacing: 0.8)),
+    );
+  }
+
+  Widget _vazio(String texto) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      decoration: BoxDecoration(
+        color: _surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _outlineVariant.withValues(alpha: 0.2)),
+      ),
+      child: Column(children: [
+        Icon(Icons.receipt_long_outlined, size: 48, color: _outlineVariant),
+        const SizedBox(height: 12),
+        Text(texto, style: GoogleFonts.montserrat(fontSize: 13, color: _onSurfaceVariant)),
       ]),
     );
   }
-}
 
-class _Legenda extends StatelessWidget {
-  final Color color;
-  final String label;
-  const _Legenda({required this.color, required this.label});
+  Widget _faturaCard(Fatura f) {
+    final info = _statusInfo[f.status] ?? (label: f.status, color: _onSurfaceVariant);
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(children: [
-      Container(width: 10, height: 10, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
-      const SizedBox(width: 4),
-      Text(label, style: GoogleFonts.montserrat(fontSize: 10, color: _onSurfaceVariant)),
-    ]);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _outlineVariant.withValues(alpha: 0.2)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text('Fatura #${f.idFatura.toString().padLeft(5, '0')}',
+              style: GoogleFonts.cinzel(fontSize: 15, fontWeight: FontWeight.w600, color: _primary)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(
+              color: info.color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: info.color.withValues(alpha: 0.4)),
+            ),
+            child: Text(info.label,
+                style: GoogleFonts.montserrat(fontSize: 10, fontWeight: FontWeight.w700,
+                    color: info.color, letterSpacing: 0.5)),
+          ),
+        ]),
+        const SizedBox(height: 8),
+        Row(children: [
+          Icon(Icons.calendar_today, size: 13, color: _onSurfaceVariant),
+          const SizedBox(width: 6),
+          Text('${_data(f.periodoInicio)} a ${_data(f.periodoFim)}',
+              style: GoogleFonts.montserrat(fontSize: 12, color: _onSurfaceVariant)),
+        ]),
+        const SizedBox(height: 12),
+        Divider(height: 1, color: _outlineVariant.withValues(alpha: 0.3)),
+        const SizedBox(height: 12),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text('Total', style: GoogleFonts.montserrat(fontSize: 12, color: _onSurfaceVariant)),
+          Text(_moeda(f.valorTotal),
+              style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w600, color: _primary)),
+        ]),
+        if (f.valorPago > 0) ...[
+          const SizedBox(height: 4),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text('Pago', style: GoogleFonts.montserrat(fontSize: 12, color: _onSurfaceVariant)),
+            Text('- ${_moeda(f.valorPago)}',
+                style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w600, color: _secondary)),
+          ]),
+        ],
+        if (f.emAberto) ...[
+          const SizedBox(height: 6),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text('Saldo devedor',
+                style: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w700, color: _primary)),
+            Text(_moeda(f.saldoDevedor),
+                style: GoogleFonts.cinzel(fontSize: 16, fontWeight: FontWeight.w600, color: _primary)),
+          ]),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () => _mostrarPix(f),
+              style: FilledButton.styleFrom(
+                backgroundColor: _primary,
+                minimumSize: const Size.fromHeight(44),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              icon: const Icon(Icons.pix, size: 18),
+              label: Text('Pagar com PIX',
+                  style: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+            ),
+          ),
+        ],
+      ]),
+    );
   }
-}
 
-class _ThLabel extends StatelessWidget {
-  final String text;
-  const _ThLabel(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(text,
-        style: GoogleFonts.montserrat(
-            fontSize: 10, fontWeight: FontWeight.w700, color: _secondary, letterSpacing: 0.8));
+  Widget _pagamentoItem(Pagamento p) {
+    const formaLabel = {'PIX': 'PIX', 'DINHEIRO': 'Dinheiro', 'CREDITO': 'Crédito'};
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(children: [
+        Container(
+          width: 40, height: 40,
+          decoration: BoxDecoration(
+            color: _primary.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.check_circle_outline, color: _primary, size: 20),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('${formaLabel[p.formaPagamento] ?? p.formaPagamento} • Fatura #${p.idFatura.toString().padLeft(5, '0')}',
+                style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w600, color: _primary)),
+            Text(_data(p.dataPagamento),
+                style: GoogleFonts.montserrat(fontSize: 11, color: _onSurfaceVariant)),
+          ]),
+        ),
+        Text(_moeda(p.valor),
+            style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w700, color: _secondary)),
+      ]),
+    );
   }
 }
 

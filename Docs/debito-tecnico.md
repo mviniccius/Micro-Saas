@@ -71,33 +71,56 @@
 
 ## [FIN-01] Gestão financeira e faturamento
 
-**Status:** Pendente  
+**Status:** Em andamento — backend e app_cliente concluídos (ver `docs/adr/0002-modelo-financeiro-faturamento.md`)  
 **Prioridade:** Média  
-**Contexto:** Adiado para depois da implementação core do app_prestador.
+**Contexto:** Modelo financeiro definido no ADR-0002. Backend e visão do cliente já implementados; falta o fechamento automático por ciclo e as telas do app_prestador.
 
-### Conceitos a implementar
-- **Fatura:** agrupamento de Pedidos de um Cliente por Período de Faturamento
+### Conceitos implementados (ADR-0002)
+- **Fatura:** agrupamento de Pedidos de um Cliente por Período de Faturamento (ciclo de vida `ABERTA` → `PARCIALMENTE_PAGA` → `PAGA`, mais `VENCIDA` manual)
 - **Período de Faturamento:** ciclo `DIARIO`, `SEMANAL` ou `MENSAL` — definido pela Panificadora por Cliente
-- **Pagamento:** liquidação de uma Fatura
+- **Pagamento:** liquidação (total ou parcial) de uma Fatura — `PIX`, `DINHEIRO` ou `CREDITO` (interno)
+- **Crédito do Cliente:** ledger `creditos_cliente` (`GERADO`/`CONSUMIDO`) para sobras de pagamento
+
+### Concluído
+- [x] Banco: `ciclo_faturamento` em `clientes`; tabelas `faturas`, `pagamentos`, `creditos_cliente`; FK `id_fatura` em `pedidos` (init.sql + migration `002-financeiro.sql`)
+- [x] Backend: `service/faturaService.js`, `controllers/faturaController.js`, `routers/faturasRouters.js`
+  - `GET /faturas/cliente/:id_cliente` — resumo financeiro (faturas + saldo de crédito + histórico)
+  - `POST /faturas/fechar` — fecha fatura agrupando pedidos entregues não faturados
+  - `POST /faturas/:id/pagamento` — registra pagamento (parcial/total, com geração de crédito no excesso)
+- [x] app_cliente: aba Financeiro conectada à API real (sem mock)
+
+### Pendente
+1. **Fechamento automático por ciclo** — job periódico para fechar faturas e abrir novas conforme `ciclo_faturamento` (hoje o fechamento é manual via `POST /faturas/fechar`)
+2. **app_prestador**
+   - Tela de consulta de faturas por cliente
+   - Tela de registro de pagamento no recebimento (PIX/DINHEIRO)
+3. **front/ (portal B2B)**
+   - FinanceiroView já tem UI mockada — conectar à API real
+4. **PIX dinâmico** — hoje a chave PIX é estática (MVP); integrar gateway (Efí ou Asaas) para cobrança com QR/identificador por fatura
+
+---
+
+## [FISCAL-01] Emissão de NF-e real
+
+**Status:** Pendente  
+**Prioridade:** Baixa  
+**Contexto:** Decidido no ADR-0002 adiar a emissão fiscal real. O sistema controla faturas e pagamentos internamente, mas não emite documento fiscal eletrônico.
 
 ### O que precisa ser feito
 
-1. **Banco de dados**
-   - Adicionar `ciclo_faturamento ENUM('DIARIO','SEMANAL','MENSAL')` na tabela `clientes`
-   - Criar tabela `faturas` — `id_fatura`, `id_cliente`, `periodo_inicio`, `periodo_fim`, `valor_total`, `status` (`ABERTA`, `PAGA`, `VENCIDA`)
-   - Criar tabela `pagamentos` — `id_pagamento`, `id_fatura`, `valor`, `data_pagamento`, `forma_pagamento`
+1. **Integração com SEFAZ / provedor de NF-e**
+   - Avaliar provedor (ex.: Focus NF-e, NFe.io, eNotas) vs. integração direta com a SEFAZ
+   - Certificado digital A1/A3 da empresa
 
-2. **Backend**
-   - `GET /faturas/:id_cliente` — lista faturas do cliente
-   - `POST /faturas/:id/pagamento` — registra pagamento
-   - Job periódico para fechar faturas e abrir novas por ciclo
+2. **Banco de dados**
+   - Vincular documento fiscal à `fatura` (ou ao `pedido`): chave de acesso, número, série, status, XML/DANFE
 
-3. **app_prestador**
-   - Tela de consulta de faturas por cliente
-   - Tela de registro de pagamento no recebimento
+3. **Backend**
+   - Endpoint para emitir NF-e a partir de uma fatura
+   - Tratamento de rejeições/contingência da SEFAZ
 
-4. **front/ (portal B2B)**
-   - FinanceiroView já tem UI mockada — conectar à API real
+### Dependências
+- Requer [FIN-01] estável (a fatura é a base do documento fiscal)
 
 ---
 
