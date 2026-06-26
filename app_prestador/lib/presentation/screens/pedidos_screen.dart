@@ -1,25 +1,29 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../data/models/pedido_model.dart';
-import '../../data/models/usuario_model.dart';
 import '../../data/services/pedido_service.dart';
-import 'login_screen.dart';
 import 'pedido_detalhe_screen.dart';
 
-class PedidosScreen extends StatefulWidget {
-  final Usuario usuario;
+enum _FiltroPedido { todos, pendentes, entregues }
 
-  const PedidosScreen({super.key, required this.usuario});
+// Aba "Pedidos" — lista com filtro de status e busca por cliente
+class PedidosTab extends StatefulWidget {
+  const PedidosTab({super.key});
 
   @override
-  State<PedidosScreen> createState() => _PedidosScreenState();
+  State<PedidosTab> createState() => _PedidosTabState();
 }
 
-class _PedidosScreenState extends State<PedidosScreen> {
+class _PedidosTabState extends State<PedidosTab> {
   final _pedidoService = PedidoService();
   List<PedidoPrestador> _pedidos = [];
   bool _carregando = true;
   Timer? _timer;
+
+  final _clienteController = TextEditingController();
+  String _busca = '';
+  _FiltroPedido _filtro = _FiltroPedido.todos;
+  bool _gerandoLista = false;
 
   @override
   void initState() {
@@ -34,7 +38,13 @@ class _PedidosScreenState extends State<PedidosScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _clienteController.dispose();
     super.dispose();
+  }
+
+  void _limparBusca() {
+    _clienteController.clear();
+    setState(() => _busca = '');
   }
 
   Future<void> _buscarPedidos() async {
@@ -66,68 +76,147 @@ class _PedidosScreenState extends State<PedidosScreen> {
     }
   }
 
-  void _logout() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
+  Future<void> _gerarListaProducao() async {
+    setState(() => _gerandoLista = true);
+    try {
+      final lista = await _pedidoService.gerarListaProducao();
+      await _buscarPedidos(); // os P viraram A
+      if (!mounted) return;
+      await showDialog(
+        context: context,
+        builder: (_) => _ListaProducaoDialog(lista: lista),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _gerandoLista = false);
+    }
+  }
+
+  // Aplica filtro de status + busca por nome do cliente
+  List<PedidoPrestador> get _pedidosFiltrados {
+    return _pedidos.where((p) {
+      final s = p.status.trim();
+      final passaFiltro = switch (_filtro) {
+        _FiltroPedido.todos => true,
+        _FiltroPedido.pendentes => s != 'C' && s != 'X',
+        _FiltroPedido.entregues => s == 'C',
+      };
+      final passaBusca = p.nomeCliente.toLowerCase().contains(_busca);
+      return passaFiltro && passaBusca;
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Olá, ${widget.usuario.nome}'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Atualizar',
-            onPressed: () {
-              setState(() => _carregando = true);
-              _buscarPedidos();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sair',
-            onPressed: _logout,
-          ),
-        ],
-      ),
-      body: _carregando
-          ? const Center(child: CircularProgressIndicator())
-          : _pedidos.isEmpty
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.inbox, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text('Nenhum pedido encontrado',
-                          style: TextStyle(color: Colors.grey)),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _buscarPedidos,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _pedidos.length,
-                    separatorBuilder: (context, i) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      return _PedidoCard(
-                        pedido: _pedidos[index],
-                        onAtualizarStatus: _atualizarStatus,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => PedidoDetalheScreen(pedido: _pedidos[index]),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+    final filtrados = _pedidosFiltrados;
+    // Nomes únicos dos clientes que têm pedidos, para o autocomplete
+    final nomesClientes = _pedidos.map((p) => p.nomeCliente).toSet().toList()
+      ..sort();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Column(
+            children: [
+              DropdownMenu<String>(
+                controller: _clienteController,
+                expandedInsets: EdgeInsets.zero,
+                enableFilter: true,
+                requestFocusOnTap: true,
+                leadingIcon: const Icon(Icons.search),
+                hintText: 'Filtrar por cliente',
+                trailingIcon: _busca.isEmpty
+                    ? null // mostra a setinha padrão
+                    : IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: _limparBusca,
+                      ),
+                onSelected: (v) => setState(() => _busca = (v ?? '').toLowerCase()),
+                dropdownMenuEntries: [
+                  for (final nome in nomesClientes)
+                    DropdownMenuEntry(value: nome, label: nome),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<_FiltroPedido>(
+                  segments: const [
+                    ButtonSegment(value: _FiltroPedido.todos, label: Text('Todos')),
+                    ButtonSegment(
+                        value: _FiltroPedido.pendentes, label: Text('Pendentes')),
+                    ButtonSegment(
+                        value: _FiltroPedido.entregues, label: Text('Entregues')),
+                  ],
+                  selected: {_filtro},
+                  onSelectionChanged: (s) => setState(() => _filtro = s.first),
                 ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _gerandoLista ? null : _gerarListaProducao,
+                  icon: _gerandoLista
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.factory_outlined),
+                  label: const Text('Gerar Lista de Produção'),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _carregando
+              ? const Center(child: CircularProgressIndicator())
+              : filtrados.isEmpty
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.inbox, size: 64, color: Colors.grey),
+                          SizedBox(height: 16),
+                          Text('Nenhum pedido encontrado',
+                              style: TextStyle(color: Colors.grey)),
+                        ],
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _buscarPedidos,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filtrados.length,
+                        separatorBuilder: (context, i) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          return _PedidoCard(
+                            pedido: filtrados[index],
+                            onAtualizarStatus: _atualizarStatus,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    PedidoDetalheScreen(pedido: filtrados[index]),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+        ),
+      ],
     );
   }
 }
@@ -252,6 +341,64 @@ class _AcoesStatus extends StatelessWidget {
         FilledButton(
           onPressed: onAvancar,
           child: Text(labels[status] ?? 'Avançar'),
+        ),
+      ],
+    );
+  }
+}
+
+// Diálogo com o resultado da Lista de Produção (totais por produto)
+class _ListaProducaoDialog extends StatelessWidget {
+  final ListaProducao lista;
+  const _ListaProducaoDialog({required this.lista});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return AlertDialog(
+      title: const Text('Lista de Produção'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${lista.totalPedidos} pedido(s) movido(s) para produção',
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+            const Divider(height: 20),
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: lista.itens.length,
+                separatorBuilder: (_, __) => const Divider(height: 12),
+                itemBuilder: (context, index) {
+                  final item = lista.itens[index];
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(item.nomeProduto,
+                            style: const TextStyle(fontWeight: FontWeight.w500)),
+                      ),
+                      Text('${item.quantidade}',
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: cs.primary)),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Fechar'),
         ),
       ],
     );

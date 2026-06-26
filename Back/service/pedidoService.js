@@ -187,6 +187,62 @@ async function atualizarItens(id_pedido, itens) {
   }
 }
 
+// Lista de Produção (ADR/CONTEXT): transiciona todos os Pedidos Recebido (P)
+// para Em Produção (A) e devolve o total a produzir por Produto, em unidades.
+async function gerarListaProducao() {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Trava os Pedidos Recebidos no instante do acionamento (evita corrida entre 2 funcionários)
+    const resPedidos = await client.query(
+      "SELECT id_pedido FROM pedidos WHERE status = 'P' ORDER BY id_pedido FOR UPDATE"
+    );
+    const ids = resPedidos.rows.map((r) => r.id_pedido);
+
+    if (ids.length === 0) {
+      throw new Error("Nenhum pedido recebido para produzir");
+    }
+
+    // Consolida as quantidades por Produto somando todos os Pedidos da onda
+    const resItens = await client.query(
+      `SELECT pr.id_produto, pr.nome_produto, SUM(ip.quantidade)::int AS quantidade
+       FROM itens_pedido ip
+       JOIN produtos pr ON pr.id_produto = ip.id_produto
+       WHERE ip.id_pedido = ANY($1)
+       GROUP BY pr.id_produto, pr.nome_produto
+       ORDER BY pr.nome_produto`,
+      [ids]
+    );
+
+    await client.query(
+      "UPDATE pedidos SET status = 'A', update_at = NOW() WHERE id_pedido = ANY($1)",
+      [ids]
+    );
+
+    await client.query("COMMIT");
+
+    await publicarEvento("producao.lista_gerada", {
+      pedidos: ids,
+      total_pedidos: ids.length,
+    });
+
+    return {
+      total_pedidos: ids.length,
+      itens: resItens.rows.map((r) => ({
+        id_produto: r.id_produto,
+        nome_produto: r.nome_produto,
+        quantidade: Number(r.quantidade),
+      })),
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   listarTodosPedidos,
   listarPedidosPorTelefone,
@@ -194,4 +250,5 @@ module.exports = {
   atualizarStatusPedido,
   listarItensPedido,
   atualizarItens,
+  gerarListaProducao,
 };

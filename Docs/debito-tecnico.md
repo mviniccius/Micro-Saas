@@ -124,20 +124,40 @@
 
 ---
 
+## [PROD-01] Conversão de unidades para telas/armários na Lista de Produção
+
+**Status:** Pendente — depende de regras do ADM  
+**Prioridade:** Baixa  
+**Contexto:** A Lista de Produção (MVP) mostra o total a produzir em **unidades** por Produto. O ADM, na prática, converte esse total em **capacidade de produção** (telas/armários) manualmente. Falta levantar com ele a regra de conversão antes de automatizar.
+
+### O que precisa ser feito (após levantamento)
+
+1. **Levantar com o ADM**
+   - A conversão é um fator fixo por Produto (ex.: 30 pães/tela)? Varia?
+   - O que é "tela" e o que é "armário" — e como se relacionam (1 armário = N telas)?
+
+2. **Banco / Backend**
+   - Provável: atributo de rendimento por tela/armário no Produto
+   - Lista de Produção passa a exibir unidades **e** telas/armários
+
+---
+
 ## [SEP-01] Anotações de Separação
 
-**Status:** Pendente  
+**Status:** Pendente — desenhado (ver `CONTEXT.md` e `docs/adr/0003-anotacao-separacao-valor-faturavel.md`)  
 **Prioridade:** Média  
-**Contexto:** Fase 2 do sistema. Separador registra divergências na entrega.
+**Contexto:** Registra a divergência entre o que foi pedido e o que foi entregue, por Produto, na entrega (`E → C`). Mantém os dois números e pode incluir Produtos fora do Pedido. **Impacto no Financeiro:** a Fatura passa a cobrar o valor entregue (valor faturável). Implementar **após** a Lista de Produção, por mexer no Financeiro já entregue (ADR-0002).
 
 ### O que precisa ser feito
 
 1. **Banco de dados**
-   - Criar tabela `anotacoes_separacao` — `id_pedido` (FK), `id_produto` (FK), `quantidade_pedida`, `quantidade_entregue`, `motivo`, `created_at`
+   - Criar tabela `anotacoes_separacao` — `id_pedido` (FK), `id_produto` (FK), `quantidade_pedida`, `quantidade_entregue`, `created_at`
+   - `quantidade_pedida = 0` para Produto entregue que não estava no Pedido
 
 2. **Backend**
-   - `POST /pedidos/:id/separacao` — registra divergências por item
+   - `POST /pedidos/:id/separacao` — registra a Anotação na confirmação de entrega (`E → C`)
+   - `fecharFatura` e o cálculo de valor do Pedido passam a usar o **valor faturável** (∑ quantidade entregue × preço) quando há Anotação
 
 3. **app_prestador**
-   - Tela de separação: lista itens do pedido, permite informar quantidade real entregue
+   - Tela de confirmação de entrega: lista itens do Pedido com quantidade entregue editável + permite adicionar Produto do catálogo (sobra)
 

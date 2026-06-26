@@ -5,6 +5,7 @@ const {
   atualizarStatusPedido,
   listarItensPedido,
   atualizarItens,
+  gerarListaProducao,
 } = require("../service/pedidoService");
 
 class PedidoController {
@@ -60,6 +61,18 @@ class PedidoController {
         return res.status(422).json({ error: error.message });
       }
       return res.status(500).json({ error: "Erro ao atualizar status do pedido" });
+    }
+  }
+
+  async gerarListaProducao(req, res) {
+    try {
+      const lista = await gerarListaProducao();
+      return res.status(201).json(lista);
+    } catch (error) {
+      if (error.message.startsWith("Nenhum pedido recebido")) {
+        return res.status(422).json({ error: error.message });
+      }
+      return res.status(500).json({ error: "Erro ao gerar lista de produção" });
     }
   }
 

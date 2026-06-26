@@ -24,6 +24,39 @@ class PedidoPrestador {
       );
 }
 
+// Linha consolidada da Lista de Produção: quanto produzir de um Produto
+class ItemProducao {
+  final int idProduto;
+  final String nomeProduto;
+  final int quantidade;
+
+  const ItemProducao({
+    required this.idProduto,
+    required this.nomeProduto,
+    required this.quantidade,
+  });
+
+  factory ItemProducao.fromJson(Map<String, dynamic> json) => ItemProducao(
+        idProduto: json['id_produto'] ?? 0,
+        nomeProduto: json['nome_produto'] ?? '',
+        quantidade: json['quantidade'] ?? 0,
+      );
+}
+
+class ListaProducao {
+  final int totalPedidos;
+  final List<ItemProducao> itens;
+
+  const ListaProducao({required this.totalPedidos, required this.itens});
+
+  factory ListaProducao.fromJson(Map<String, dynamic> json) => ListaProducao(
+        totalPedidos: json['total_pedidos'] ?? 0,
+        itens: (json['itens'] as List<dynamic>? ?? [])
+            .map((e) => ItemProducao.fromJson(e))
+            .toList(),
+      );
+}
+
 class ItemPedido {
   final int idItensPedido;
   final int idProduto;

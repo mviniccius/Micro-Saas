@@ -58,6 +58,22 @@ router.post("/", (req, res) => pedidoController.criar(req, res));
 
 /**
  * @swagger
+ * /pedidos/gerar-lista-producao:
+ *   post:
+ *     tags:
+ *       - Pedidos
+ *     summary: Gera a lista de produção (move todos os Recebidos P para Em Produção A)
+ *     description: Transiciona todos os pedidos em status P para A e devolve o total a produzir por produto (em unidades).
+ *     responses:
+ *       201:
+ *         description: Lista gerada; pedidos movidos para produção
+ *       422:
+ *         description: Nenhum pedido recebido para produzir
+ */
+router.post("/gerar-lista-producao", (req, res) => pedidoController.gerarListaProducao(req, res));
+
+/**
+ * @swagger
  * /pedidos/{id}/status:
  *   patch:
  *     summary: Atualiza o status de um pedido e publica evento no MOM

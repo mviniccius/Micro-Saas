@@ -35,6 +35,20 @@ class PedidoService {
     }
   }
 
+  // Gera a lista de produção: move todos os Recebidos (P) para Em Produção (A)
+  // e devolve o total a produzir por produto.
+  Future<ListaProducao> gerarListaProducao() async {
+    final response = await http.post(
+      Uri.parse('$_base/pedidos/gerar-lista-producao'),
+      headers: {'Content-Type': 'application/json'},
+    );
+    if (response.statusCode == 201) {
+      return ListaProducao.fromJson(jsonDecode(response.body));
+    }
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao gerar lista: ${response.statusCode}');
+  }
+
   Future<void> atualizarItens(int idPedido, List<Map<String, dynamic>> itens) async {
     final response = await http.put(
       Uri.parse('$_base/pedidos/$idPedido/itens'),

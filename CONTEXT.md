@@ -24,6 +24,12 @@ Linha de um Pedido: produto + quantidade + preço unitário no momento da compra
 **Produto**
 Bem produzido pela panificadora disponível para pedido. Possui preço vigente.
 
+**Anotação de Separação**
+Registro da divergência entre o que foi pedido e o que foi efetivamente entregue, por **Produto**. Mantém **os dois números**: quantidade pedida e quantidade entregue. Pode incluir Produtos que **não estavam no Pedido original** (quantidade pedida = 0) — ex.: sobra de produção que o Cliente leva na hora. Criada no momento da entrega (transição `E → C`), antes de o Pedido entrar em uma Fatura. Quando um Pedido possui Anotação de Separação, seu **valor faturável** passa a ser a soma de (quantidade entregue × preço) — é a fonte da verdade do faturamento. Sem Anotação, o valor faturável é o que foi pedido. Origem das divergências: sobra ou falta na produção.
+
+**Lista de Produção**
+Projeção **efêmera** (sem histórico arquivado) gerada quando o Funcionário aciona "Gerar Lista de Produção". A ação transiciona **todos** os Pedidos em `Recebido (P)` no instante do acionamento para `Em Produção (A)` e devolve, em uma única lista, o **total de cada Produto a produzir** — a soma das quantidades de todos os Pedidos da onda, expresso em **unidades**. A conversão das unidades para capacidade de produção (telas/armários) é feita pelo ADM fora do sistema; sua automação é uma lacuna conhecida.
+
 ---
 
 ## Financeiro (planejado — Fase 2)
@@ -31,7 +37,7 @@ Bem produzido pela panificadora disponível para pedido. Possui preço vigente.
 **Fatura**
 Agrupamento de Pedidos com status `C` (Entregue) de um Cliente dentro de um Período de Faturamento. Criada manualmente pelo Funcionário via botão "Fechar Fatura"; futuramente por job automático. Pedidos em andamento ou cancelados não entram na Fatura — ficam para o próximo período.
 
-Um Pedido entra em **no máximo uma Fatura**. Pedidos entregues após o fechamento (entrega atrasada) entram na próxima Fatura.
+Um Pedido entra em **no máximo uma Fatura**. Pedidos entregues após o fechamento (entrega atrasada) entram na próxima Fatura. O valor de cada Pedido na Fatura é seu **valor faturável**: a quantidade efetivamente entregue quando há Anotação de Separação, ou o que foi pedido quando não há.
 
 Ciclo de vida da Fatura:
 ```
@@ -88,7 +94,7 @@ P → A → S → E → C
 - Permitida somente nos status `P` e `A`.
 - Operações permitidas: alterar quantidade, remover item, adicionar novo item.
 - O recálculo de `preco_unitario`, `valor_total_item` e `valor_total` do Pedido é sempre feito pelo backend com o preço vigente do Produto no banco.
-- A partir de `S`, divergências são registradas como Anotação de Separação (Fase 2).
+- Depois de `A`, o Pedido não é mais editável; ajustes de quantidade na entrega são registrados como Anotação de Separação (na transição `E → C`), preservando o que foi pedido.
 - Edições são refletidas automaticamente no app_cliente via polling (sem notificação explícita).
 - Toda edição de itens publica o evento `pedido.itens.atualizados` no sistema de mensageria.
 - Um Pedido deve ter no mínimo 1 Item de Pedido. Remoção do último item é rejeitada pelo backend — o Funcionário deve cancelar o Pedido explicitamente.
