@@ -1339,17 +1339,26 @@ class _FinanceiroTabState extends State<_FinanceiroTab> {
           ),
           const SizedBox(height: 24),
 
-          // ── Faturas ──────────────────────────────────────
-          Text('Faturas',
+          // ── Faturas em aberto ────────────────────────────
+          Text('Faturas em Aberto',
               style: GoogleFonts.cinzel(fontSize: 18, fontWeight: FontWeight.w500, color: _primary)),
           const SizedBox(height: 12),
 
-          if (r.faturas.isEmpty)
-            _vazio('Nenhuma fatura emitida ainda.')
+          if (!r.faturas.any((f) => f.emAberto))
+            _vazio('Nenhuma fatura em aberto.')
           else
-            ...r.faturas.map(_faturaCard),
+            ...r.faturas.where((f) => f.emAberto).map(_faturaCard),
 
           const SizedBox(height: 24),
+
+          // ── Faturas pagas ────────────────────────────────
+          if (r.faturas.any((f) => !f.emAberto)) ...[
+            Text('Faturas Pagas',
+                style: GoogleFonts.cinzel(fontSize: 18, fontWeight: FontWeight.w500, color: _primary)),
+            const SizedBox(height: 12),
+            ...r.faturas.where((f) => !f.emAberto).map(_faturaCard),
+            const SizedBox(height: 24),
+          ],
 
           // ── Histórico de pagamentos ──────────────────────
           if (r.historicoPagamentos.isNotEmpty) ...[

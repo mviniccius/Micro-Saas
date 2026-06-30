@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../data/models/pedido_model.dart';
 import '../../data/models/usuario_model.dart';
@@ -15,27 +16,44 @@ class InicioTab extends StatefulWidget {
 
 class _InicioTabState extends State<InicioTab> {
   final _pedidoService = PedidoService();
-  late Future<List<PedidoPrestador>> _future;
+  List<PedidoPrestador> _pedidos = [];
+  bool _carregando = true;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     _carregar();
+    _timer = Timer.periodic(
+      const Duration(seconds: 10),
+      (_) => _carregar(),
+    );
   }
 
-  void _carregar() {
-    _future = _pedidoService.listarPedidos();
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
-  Future<void> _recarregar() async {
-    setState(_carregar);
-    await _future;
+  Future<void> _carregar() async {
+    try {
+      final lista = await _pedidoService.listarPedidos();
+      if (mounted) {
+        setState(() {
+          _pedidos = lista;
+          _carregando = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _carregando = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      onRefresh: _recarregar,
+      onRefresh: _carregar,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -43,7 +61,7 @@ class _InicioTabState extends State<InicioTab> {
           const SizedBox(height: 24),
           Text('Resumo de hoje', style: Theme.of(context).textTheme.labelLarge),
           const SizedBox(height: 12),
-          _ResumoPedidos(future: _future),
+          _ResumoPedidos(pedidos: _pedidos, carregando: _carregando),
         ],
       ),
     );
@@ -86,51 +104,38 @@ class _Saudacao extends StatelessWidget {
 }
 
 class _ResumoPedidos extends StatelessWidget {
-  final Future<List<PedidoPrestador>> future;
-  const _ResumoPedidos({required this.future});
+  final List<PedidoPrestador> pedidos;
+  final bool carregando;
+  const _ResumoPedidos({required this.pedidos, required this.carregando});
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<PedidoPrestador>>(
-      future: future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox(
-            height: 90,
-            child: Center(child: CircularProgressIndicator()),
-          );
-        }
-        if (snapshot.hasError) {
-          return const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('Não foi possível carregar os pedidos.',
-                  style: TextStyle(color: Colors.grey)),
-            ),
-          );
-        }
-        final pedidos = snapshot.data ?? [];
-        int conta(List<String> status) =>
-            pedidos.where((p) => status.contains(p.status.trim())).length;
+    if (carregando) {
+      return const SizedBox(
+        height: 90,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
 
-        final tiles = [
-          (rotulo: 'Novos', qtd: conta(['P']), cor: const Color(0xFFE65100)),
-          (rotulo: 'Em produção', qtd: conta(['A', 'S']), cor: const Color(0xFF1565C0)),
-          (rotulo: 'Em entrega', qtd: conta(['E']), cor: const Color(0xFF00695C)),
-          (rotulo: 'Entregues', qtd: conta(['C']), cor: const Color(0xFF2E7D32)),
-        ];
+    int conta(List<String> status) =>
+        pedidos.where((p) => status.contains(p.status.trim())).length;
 
-        return Row(
-          children: [
-            for (final t in tiles) ...[
-              Expanded(
-                child: _StatTile(rotulo: t.rotulo, qtd: t.qtd, cor: t.cor),
-              ),
-              if (t != tiles.last) const SizedBox(width: 8),
-            ],
-          ],
-        );
-      },
+    final tiles = [
+      (rotulo: 'Novos', qtd: conta(['P']), cor: const Color(0xFFE65100)),
+      (rotulo: 'Em produção', qtd: conta(['A', 'S']), cor: const Color(0xFF1565C0)),
+      (rotulo: 'Em entrega', qtd: conta(['E']), cor: const Color(0xFF00695C)),
+      (rotulo: 'Entregues', qtd: conta(['C']), cor: const Color(0xFF2E7D32)),
+    ];
+
+    return Row(
+      children: [
+        for (final t in tiles) ...[
+          Expanded(
+            child: _StatTile(rotulo: t.rotulo, qtd: t.qtd, cor: t.cor),
+          ),
+          if (t != tiles.last) const SizedBox(width: 8),
+        ],
+      ],
     );
   }
 }
